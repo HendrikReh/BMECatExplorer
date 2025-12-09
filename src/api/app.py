@@ -5,12 +5,42 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes.search import router as search_router
 
+DESCRIPTION = """
+## Product Search API
+
+Search and retrieve products from a BMECat catalog stored in OpenSearch.
+
+### Features
+
+* **Full-text search** - Search across product descriptions in German
+* **Faceted filtering** - Filter by manufacturer, ECLASS category, price range
+* **Autocomplete** - Type-ahead suggestions for search terms
+* **Pagination** - Configurable page size up to 100 results
+
+### Data Source
+
+Products are imported from BMECat 1.2 XML catalogs and indexed in OpenSearch
+with German language analysis for optimal search relevance.
+"""
+
 app = FastAPI(
     title="Product Search API",
-    description="API for searching BMECat product catalog",
+    description=DESCRIPTION,
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "search",
+            "description": "Product search and filtering operations",
+        },
+    ],
+    contact={
+        "name": "BMECatDemo",
+    },
+    license_info={
+        "name": "MIT",
+    },
 )
 
 # CORS middleware
