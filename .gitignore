@@ -8,5 +8,5 @@ wheels/
 
 # Virtual environments
 .venv
-data/**"
-/data/BME-cat_eClass_8.xml
+data/
+/report.jsonl
