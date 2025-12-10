@@ -303,7 +303,8 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
             facets = parse_facets(response.get("aggregations", {}))
 
     elif request.mode == "vector":
-        # Vector only
+        # Vector-only mode: semantic similarity search using k-NN
+        # Fetches k=size*2 neighbors to ensure enough results after filtering
         body = {
             "size": request.size,
             "query": build_knn_query(embedding, k=request.size * 2, filters=filters),
@@ -328,24 +329,26 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
             facets = parse_facets(response.get("aggregations", {}))
 
     else:
-        # Hybrid: Run both queries and fuse with RRF
-        fetch_size = request.size * 3  # Fetch more for fusion
+        # Hybrid mode: combine BM25 and vector results using Reciprocal Rank Fusion
+        # Fetch 3x results from each method to ensure diverse candidates for fusion
+        fetch_size = request.size * 3
 
-        # BM25 query
+        # Execute BM25 lexical search
         bm25_body = {
             "query": build_bm25_query(request.q, filters),
             "size": fetch_size,
         }
         bm25_response = client.search(index=settings.opensearch_index, body=bm25_body)
 
-        # Vector query
+        # Execute vector semantic search
         vector_body = {
             "size": fetch_size,
             "query": build_knn_query(embedding, k=fetch_size, filters=filters),
         }
         vector_response = client.search(index=settings.opensearch_index, body=vector_body)
 
-        # Build rank maps
+        # Build rank maps: doc_id -> (rank, score, hit)
+        # Rank is 1-indexed for RRF formula
         bm25_ranks: dict[str, tuple[int, float, dict]] = {}
         for rank, hit in enumerate(bm25_response["hits"]["hits"]):
             doc_id = hit["_id"]
@@ -356,10 +359,11 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
             doc_id = hit["_id"]
             vector_ranks[doc_id] = (rank + 1, hit.get("_score", 0), hit)
 
-        # Combine all document IDs
+        # Combine all unique document IDs from both result sets
         all_doc_ids = set(bm25_ranks.keys()) | set(vector_ranks.keys())
 
-        # Calculate RRF scores
+        # Calculate weighted RRF scores for each document
+        # RRF formula: sum(weight / (k + rank)) for each retrieval method
         scored_docs = []
         for doc_id in all_doc_ids:
             bm25_rank = bm25_ranks.get(doc_id, (None, None, None))[0]
@@ -382,10 +386,10 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
 
             scored_docs.append((rrf, bm25_score, vector_score, hit))
 
-        # Sort by RRF score
+        # Sort by RRF score descending (highest relevance first)
         scored_docs.sort(key=lambda x: x[0], reverse=True)
 
-        # Paginate
+        # Apply pagination to fused results
         start_idx = (request.page - 1) * request.size
         end_idx = start_idx + request.size
         page_docs = scored_docs[start_idx:end_idx]
