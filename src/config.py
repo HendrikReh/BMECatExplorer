@@ -33,6 +33,12 @@ class Settings(BaseSettings):
     api_host: str = "0.0.0.0"
     api_port: int = 9019
 
+    # OpenAI Embeddings
+    openai_api_key: str | None = None
+    openai_embedding_model: str = "text-embedding-3-small"
+    openai_embedding_dimensions: int = 1536
+    embedding_batch_size: int = 100
+
     @property
     def postgres_url(self) -> str:
         return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"

@@ -8,6 +8,7 @@ dependencies = [
     "asyncpg>=0.31.0",
     "fastapi>=0.124.0",
     "lxml>=6.0.2",
+    "openai>=2.9.0",
     "opensearch-py>=3.1.0",
     "psycopg>=3.3.2",
     "psycopg-binary>=3.3.2",

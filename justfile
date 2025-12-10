@@ -40,6 +40,18 @@ import FILE:
 index:
     uv run python -m src.search.indexer
 
+# Index products with embeddings (requires OPENAI_API_KEY)
+index-embed:
+    uv run python -m src.search.indexer --embeddings
+
+# Index products to a specific catalog namespace
+index-catalog CATALOG_ID SOURCE_FILE:
+    uv run python -m src.search.indexer --catalog-id {{ CATALOG_ID }} --source-file {{ SOURCE_FILE }} --no-recreate
+
+# Index catalog with embeddings
+index-catalog-embed CATALOG_ID SOURCE_FILE:
+    uv run python -m src.search.indexer --catalog-id {{ CATALOG_ID }} --source-file {{ SOURCE_FILE }} --no-recreate --embeddings
+
 # Start API server
 serve:
     uv run uvicorn src.api.app:app --reload --port 9019
@@ -78,3 +90,15 @@ pipeline INPUT:
     just convert {{ INPUT }} data/products.jsonl
     just import data/products.jsonl
     just index
+
+# Full pipeline with embeddings
+pipeline-embed INPUT:
+    just convert {{ INPUT }} data/products.jsonl
+    just import data/products.jsonl
+    just index-embed
+
+# Pipeline for multi-catalog setup (appends to existing index)
+pipeline-catalog INPUT CATALOG_ID:
+    just convert {{ INPUT }} data/products.jsonl
+    just import data/products.jsonl
+    just index-catalog {{ CATALOG_ID }} {{ INPUT }}

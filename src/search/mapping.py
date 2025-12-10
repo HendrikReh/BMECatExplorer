@@ -1,9 +1,14 @@
-"""OpenSearch index mapping for products."""
+"""OpenSearch index mapping for products with hybrid search support."""
+
+from src.config import settings
 
 INDEX_SETTINGS = {
     "settings": {
         "number_of_shards": 1,
         "number_of_replicas": 0,
+        "index": {
+            "knn": True,  # Enable k-NN for vector search
+        },
         "analysis": {
             "analyzer": {
                 "autocomplete": {
@@ -29,9 +34,17 @@ INDEX_SETTINGS = {
     },
     "mappings": {
         "properties": {
+            # Identifiers
             "supplier_aid": {"type": "keyword"},
             "ean": {"type": "keyword"},
             "manufacturer_aid": {"type": "keyword"},
+
+            # Catalog/provenance (for multi-catalog support)
+            "catalog_id": {"type": "keyword"},
+            "source_uri": {"type": "keyword"},
+            "source_file": {"type": "keyword"},
+
+            # Text fields with German analyzer
             "manufacturer_name": {
                 "type": "text",
                 "analyzer": "german",
@@ -49,16 +62,44 @@ INDEX_SETTINGS = {
                 },
             },
             "description_long": {"type": "text", "analyzer": "german"},
+
+            # Numeric fields
             "delivery_time": {"type": "integer"},
             "order_unit": {"type": "keyword"},
             "price_quantity": {"type": "integer"},
             "quantity_min": {"type": "integer"},
+
+            # Classification
             "eclass_id": {"type": "keyword"},
             "eclass_system": {"type": "keyword"},
+
+            # Pricing
             "price_amount": {"type": "float"},
             "price_currency": {"type": "keyword"},
             "price_type": {"type": "keyword"},
+
+            # Media
             "image": {"type": "keyword"},
+
+            # Embedding for vector search
+            "embedding": {
+                "type": "knn_vector",
+                "dimension": settings.openai_embedding_dimensions,
+                "method": {
+                    "name": "hnsw",
+                    "space_type": "cosinesimil",
+                    "engine": "nmslib",
+                    "parameters": {
+                        "ef_construction": 128,
+                        "m": 16,
+                    },
+                },
+            },
+            # Text used to generate embedding (for debugging/provenance)
+            "embedding_text": {
+                "type": "text",
+                "index": False,  # Not searchable, just stored
+            },
         }
     },
 }
