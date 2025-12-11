@@ -6,11 +6,12 @@ Run with: pytest tests/integration -m integration
 
 import pytest
 from sqlalchemy import create_engine, select, text
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from src.config import settings
-from src.db.models import Base, Product, ProductPrice, ProductMedia
 from src.db.import_jsonl import parse_product
+from src.db.models import Base, Product, ProductMedia, ProductPrice
 
 
 @pytest.fixture(scope="module")
@@ -125,7 +126,7 @@ class TestProductModel:
         product2 = Product(supplier_aid="INT_TEST_UNIQUE")
         db_session.add(product2)
 
-        with pytest.raises(Exception):  # IntegrityError
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
         db_session.rollback()

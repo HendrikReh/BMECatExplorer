@@ -6,11 +6,10 @@ Requires a running API server with data loaded.
 Run with: pytest tests/smoke/test_manual_searches.py -v
 """
 
-import pytest
 import httpx
+import pytest
 
 from src.config import settings
-
 
 API_BASE_URL = f"http://localhost:{settings.api_port}"
 

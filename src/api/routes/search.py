@@ -5,8 +5,8 @@ from opensearchpy import NotFoundError
 
 from src.api.schemas import (
     AutocompleteResponse,
-    Facets,
     FacetBucket,
+    Facets,
     ProductResult,
     SearchResponse,
 )
@@ -79,13 +79,32 @@ def build_search_query(
 
 @router.get("/search", response_model=SearchResponse, summary="Search products")
 async def search_products(
-    q: str | None = Query(None, description="Full-text search query. Searches in description, manufacturer name, supplier ID, and EAN.", examples=["Kabel"]),
-    manufacturer: str | None = Query(None, description="Filter by exact manufacturer name", examples=["Walraven GmbH"]),
-    eclass_id: str | None = Query(None, description="Filter by ECLASS classification ID", examples=["23140307"]),
-    price_min: float | None = Query(None, ge=0, description="Minimum price filter (inclusive)", examples=[100]),
-    price_max: float | None = Query(None, ge=0, description="Maximum price filter (inclusive)", examples=[500]),
+    q: str | None = Query(
+        None,
+        description=(
+            "Full-text search query. Searches in description, manufacturer name, "
+            "supplier ID, and EAN."
+        ),
+        examples=["Kabel"],
+    ),
+    manufacturer: str | None = Query(
+        None,
+        description="Filter by exact manufacturer name",
+        examples=["Walraven GmbH"],
+    ),
+    eclass_id: str | None = Query(
+        None, description="Filter by ECLASS classification ID", examples=["23140307"]
+    ),
+    price_min: float | None = Query(
+        None, ge=0, description="Minimum price filter (inclusive)", examples=[100]
+    ),
+    price_max: float | None = Query(
+        None, ge=0, description="Maximum price filter (inclusive)", examples=[500]
+    ),
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
-    size: int = Query(20, ge=1, le=100, description="Number of results per page (max 100)"),
+    size: int = Query(
+        20, ge=1, le=100, description="Number of results per page (max 100)"
+    ),
 ) -> SearchResponse:
     """
     Search products with full-text search and faceted filtering.
@@ -155,9 +174,18 @@ async def search_products(
     )
 
 
-@router.get("/search/autocomplete", response_model=AutocompleteResponse, summary="Autocomplete suggestions")
+@router.get(
+    "/search/autocomplete",
+    response_model=AutocompleteResponse,
+    summary="Autocomplete suggestions",
+)
 async def autocomplete(
-    q: str = Query(..., min_length=2, description="Partial search term (minimum 2 characters)", examples=["Kab"]),
+    q: str = Query(
+        ...,
+        min_length=2,
+        description="Partial search term (minimum 2 characters)",
+        examples=["Kab"],
+    ),
 ) -> AutocompleteResponse:
     """
     Get autocomplete suggestions for search terms.
@@ -192,7 +220,11 @@ async def autocomplete(
     return AutocompleteResponse(suggestions=suggestions[:10])
 
 
-@router.get("/products/{supplier_aid}", response_model=ProductResult, summary="Get product by ID")
+@router.get(
+    "/products/{supplier_aid}",
+    response_model=ProductResult,
+    summary="Get product by ID",
+)
 async def get_product(supplier_aid: str) -> ProductResult:
     """
     Get a single product by supplier article ID.

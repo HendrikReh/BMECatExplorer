@@ -8,9 +8,8 @@ import pytest
 from opensearchpy import NotFoundError
 
 from src.config import settings
-from src.search.client import client, create_index, delete_index
+from src.search.client import client
 from src.search.mapping import INDEX_SETTINGS
-
 
 TEST_INDEX = "test_products"
 
@@ -158,11 +157,7 @@ class TestOpenSearchSearch:
         """Test range filter on price."""
         response = client.search(
             index=TEST_INDEX,
-            body={
-                "query": {
-                    "range": {"price_amount": {"gte": 200, "lte": 300}}
-                }
-            },
+            body={"query": {"range": {"price_amount": {"gte": 200, "lte": 300}}}},
         )
         assert response["hits"]["total"]["value"] >= 1
 

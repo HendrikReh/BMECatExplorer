@@ -112,6 +112,8 @@ Environment variables (or `.env` file):
 | `just convert <in> <out>` | Convert XML to JSONL |
 | `just import <file>` | Import JSONL to PostgreSQL |
 | `just index` | Index to OpenSearch |
+| `just lint` | Run Ruff lint checks |
+| `just format` | Format code with Black |
 | `just serve` | Start API server |
 | `just test-unit` | Run unit tests |
 | `just test-integration` | Run integration tests |

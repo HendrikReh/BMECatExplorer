@@ -90,6 +90,7 @@ def index_all(
     if generate_embeddings:
         from src.embeddings.client import embed_batch
         from src.embeddings.text_prep import prepare_embedding_text
+
         print("Embedding generation enabled.", file=sys.stderr)
     else:
         embed_batch = None
@@ -133,7 +134,9 @@ def index_all(
                     embeddings = embed_batch(texts)
                     print(f"  Generated {len(embeddings)} embeddings", file=sys.stderr)
                 except Exception as e:
-                    print(f"  Warning: Embedding generation failed: {e}", file=sys.stderr)
+                    print(
+                        f"  Warning: Embedding generation failed: {e}", file=sys.stderr
+                    )
                     embeddings = [None] * len(products)
 
             # Convert to documents
@@ -143,7 +146,9 @@ def index_all(
                     catalog_id=catalog_id,
                     source_file=source_file,
                     embedding=embeddings[i] if i < len(embeddings) else None,
-                    embedding_text=embedding_texts[i] if i < len(embedding_texts) else None,
+                    embedding_text=(
+                        embedding_texts[i] if i < len(embedding_texts) else None
+                    ),
                 )
                 for i, p in enumerate(products)
             ]
