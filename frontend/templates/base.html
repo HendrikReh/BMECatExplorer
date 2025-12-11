@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BMECatDemo Admin{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+</head>
+<body class="h-full" hx-boost="true">
+    <div class="min-h-full">
+        <!-- Header -->
+        <header class="bg-slate-800 shadow-lg">
+            <div class="mx-auto max-w-[110rem] px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
+                <div>
+                    <h1 class="text-2xl font-bold text-white">
+                        <a href="/" class="hover:text-slate-200">BMECatDemo</a>
+                    </h1>
+                    <p class="text-sm text-slate-400">Product Catalog Explorer</p>
+                </div>
+                <div class="text-sm text-slate-400">
+                    Admin Interface
+                </div>
+            </div>
+        </header>
+
+        <!-- Main content -->
+        <main class="mx-auto max-w-[110rem] px-4 py-6 sm:px-6 lg:px-8">
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Footer -->
+        <footer class="mx-auto max-w-[110rem] px-4 py-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
+            BMECatDemo &mdash; Product Catalog Search Interface
+        </footer>
+    </div>
+
+    <!-- Product detail modal -->
+    <div id="product-modal" class="hidden fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+                 onclick="closeModal()"></div>
+            <div id="product-modal-content" class="relative z-10 w-full max-w-2xl">
+                <!-- Content loaded via HTMX -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Minimal JS -->
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

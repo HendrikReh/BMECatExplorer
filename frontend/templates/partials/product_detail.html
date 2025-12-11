@@ -1,0 +1,79 @@
+<div class="bg-white rounded-lg shadow-xl">
+    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-gray-900">{{ product.supplier_aid }}</h2>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-500 transition-colors">
+            <span class="sr-only">Close</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+
+    <div class="px-6 py-4 max-h-[70vh] overflow-y-auto">
+        {% if product.image %}
+        <div class="mb-6">
+            <img src="{{ product.image }}" alt="{{ product.description_short }}"
+                 class="w-full h-48 object-contain bg-gray-50 rounded-lg"
+                 onerror="this.parentElement.style.display='none';">
+        </div>
+        {% endif %}
+
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Supplier Article ID</dt>
+                <dd class="mt-1 text-sm text-gray-900 font-mono">{{ product.supplier_aid }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">EAN</dt>
+                <dd class="mt-1 text-sm text-gray-900 font-mono">{{ product.ean or '-' }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Manufacturer</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ product.manufacturer_name or '-' }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Manufacturer Article ID</dt>
+                <dd class="mt-1 text-sm text-gray-900 font-mono">{{ product.manufacturer_aid or '-' }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">ECLASS</dt>
+                <dd class="mt-1 text-sm text-gray-900">
+                    {% if product.eclass_id %}
+                    <div class="inline-flex items-center px-2.5 py-0.5 rounded-md bg-blue-100 text-blue-800 gap-1">
+                        <span>{{ product.eclass_name or ('Segment ' ~ product.eclass_id[:2]) }}</span>
+                        <span class="text-xs text-blue-700">({{ product.eclass_id }})</span>
+                    </div>
+                    {% else %}
+                    <span class="text-sm text-gray-400">-</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500">Price</dt>
+                <dd class="mt-1 text-sm text-gray-900 font-semibold">
+                    {% if product.price_amount %}
+                    {{ product.price_amount | format_price }} {{ product.price_currency or 'EUR' }}
+                    {% else %}
+                    <span class="text-gray-400 font-normal">-</span>
+                    {% endif %}
+                </dd>
+            </div>
+            <div class="sm:col-span-2">
+                <dt class="text-sm font-medium text-gray-500">Short Description</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ product.description_short or '-' }}</dd>
+            </div>
+            {% if product.description_long %}
+            <div class="sm:col-span-2">
+                <dt class="text-sm font-medium text-gray-500">Long Description</dt>
+                <dd class="mt-1 text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 p-3 rounded-lg">{{ product.description_long }}</dd>
+            </div>
+            {% endif %}
+        </dl>
+    </div>
+
+    <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+        <button onclick="closeModal()" class="w-full sm:w-auto px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm font-medium">
+            Close
+        </button>
+    </div>
+</div>

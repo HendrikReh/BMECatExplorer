@@ -1,0 +1,15 @@
+{% if suggestions %}
+<ul class="py-1 max-h-64 overflow-y-auto">
+    {% for suggestion in suggestions %}
+    <li>
+        <button
+            type="button"
+            class="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+            onclick="selectSuggestion('{{ suggestion | e }}')"
+        >
+            <span class="block truncate">{{ suggestion }}</span>
+        </button>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}

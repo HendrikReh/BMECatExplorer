@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+
+{% block title %}Search - BMECatDemo Admin{% endblock %}
+
+{# Macro for hx-include with all filter fields #}
+{% set filter_include = "#search-input, [name='manufacturer'], [name='eclass_id'], [name='eclass_segment'], [name='order_unit'], [name='price_band'], [name='exact_match']" %}
+
+{% block content %}
+<div class="flex gap-6">
+    <!-- Filter Sidebar -->
+    <aside class="w-72 flex-shrink-0">
+        <div class="bg-white rounded-lg shadow p-4 sticky top-6 space-y-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-gray-900">Filters</h2>
+                <button
+                    type="button"
+                    onclick="clearFilters()"
+                    class="text-xs text-gray-500 hover:text-gray-700 underline"
+                >
+                    Clear all
+                </button>
+            </div>
+
+            <!-- ECLASS Segment filter (Priority 1) - Multi-select -->
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Category</span>
+                    </div>
+                    <button
+                        type="button"
+                        id="clear-category-btn"
+                        onclick="event.preventDefault(); clearCategoryFilter()"
+                        class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
+                    >
+                        Clear
+                    </button>
+                </summary>
+                <div class="space-y-1 max-h-64 overflow-y-auto mt-2 ml-6">
+                    {% for facet in facets.eclass_segments %}
+                    <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                            type="checkbox"
+                            id="eclass_segment_{{ facet.value }}"
+                            name="eclass_segment"
+                            value="{{ facet.value }}"
+                            {% if facet.value in (eclass_segments or []) %}checked{% endif %}
+                            hx-get="/search"
+                            hx-trigger="change"
+                            hx-target="#results-container"
+                            hx-include="{{ filter_include }}"
+                            class="rounded text-primary focus:ring-primary"
+                        >
+                        <span class="flex-1 truncate" title="{{ facet.name }}">{{ facet.name }}</span>
+                        <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </details>
+
+            <!-- Price Bands filter (Priority 2) -->
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Price Range</span>
+                    </div>
+                    <button
+                        type="button"
+                        id="clear-price-btn"
+                        onclick="event.preventDefault(); clearPriceFilter()"
+                        class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
+                    >
+                        Clear
+                    </button>
+                </summary>
+                <div class="space-y-1 mt-2 ml-6">
+                    {% for band in facets.price_bands %}
+                    <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                            type="radio"
+                            name="price_band"
+                            value="{{ band.key }}"
+                            {% if price_band == band.key %}checked{% endif %}
+                            hx-get="/search"
+                            hx-trigger="change"
+                            hx-target="#results-container"
+                            hx-include="{{ filter_include }}"
+                            class="text-primary focus:ring-primary"
+                        >
+                        <span class="flex-1">{{ band.label }}</span>
+                        <span class="text-gray-400 text-xs">{{ band.count | format_number }}</span>
+                    </label>
+                    {% endfor %}
+                    <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                            type="radio"
+                            name="price_band"
+                            value=""
+                            {% if not price_band %}checked{% endif %}
+                            hx-get="/search"
+                            hx-trigger="change"
+                            hx-target="#results-container"
+                            hx-include="{{ filter_include }}"
+                            class="text-primary focus:ring-primary"
+                        >
+                        <span class="flex-1 text-gray-500">Any price</span>
+                    </label>
+                </div>
+            </details>
+
+            <!-- Order Unit filter (Priority 3) - Multi-select -->
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Unit</span>
+                    </div>
+                    <button
+                        type="button"
+                        id="clear-unit-btn"
+                        onclick="event.preventDefault(); clearUnitFilter()"
+                        class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
+                    >
+                        Clear
+                    </button>
+                </summary>
+                <div class="mt-2 ml-6">
+                    <!-- Selected units (shown as chips) -->
+                    <div id="selected-units" class="flex flex-wrap gap-1 mb-2">
+                        {% for unit in (order_units or []) %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
+                            {{ unit }}
+                            <button type="button" onclick="removeUnit('{{ unit }}')" class="hover:text-gray-200">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <input type="hidden" name="order_unit" value="{{ unit }}">
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <!-- Unit list -->
+                    <div id="unit-list" class="space-y-1 max-h-48 overflow-y-auto">
+                        {% for facet in facets.order_units %}
+                        <label class="unit-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-value="{{ facet.value }}">
+                            <input
+                                type="checkbox"
+                                name="order_unit"
+                                value="{{ facet.value }}"
+                                {% if facet.value in (order_units or []) %}checked{% endif %}
+                                onchange="handleUnitChange(this)"
+                                class="rounded text-primary focus:ring-primary"
+                            >
+                            <span class="flex-1 truncate" title="{{ facet.name }}">{{ facet.name }}</span>
+                            <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                </div>
+            </details>
+
+            <!-- Manufacturer filter - Multi-select with search -->
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Manufacturer</span>
+                    </div>
+                    <button
+                        type="button"
+                        id="clear-manufacturer-btn"
+                        onclick="event.preventDefault(); clearManufacturerFilter()"
+                        class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
+                    >
+                        Clear
+                    </button>
+                </summary>
+                <div class="mt-2 ml-6">
+                    <!-- Search box for manufacturers -->
+                    <div class="relative mb-2">
+                        <input
+                            type="text"
+                            id="manufacturer-search"
+                            placeholder="Search manufacturers..."
+                            class="w-full text-sm border border-gray-300 rounded-md pl-8 pr-3 py-1.5 focus:border-primary focus:ring-primary"
+                            oninput="filterManufacturers(this.value)"
+                        >
+                        <svg class="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <!-- Selected manufacturers (shown as chips) -->
+                    <div id="selected-manufacturers" class="flex flex-wrap gap-1 mb-2">
+                        {% for mfr in (manufacturers or []) %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
+                            {{ mfr }}
+                            <button type="button" onclick="removeManufacturer('{{ mfr }}')" class="hover:text-gray-200">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <input type="hidden" name="manufacturer" value="{{ mfr }}">
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <!-- Manufacturer list (top 20 + filtered) -->
+                    <div id="manufacturer-list" class="space-y-1 max-h-48 overflow-y-auto">
+                        {% for facet in facets.manufacturers[:20] %}
+                        <label class="manufacturer-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-name="{{ facet.value | lower }}">
+                            <input
+                                type="checkbox"
+                                name="manufacturer"
+                                value="{{ facet.value }}"
+                                {% if facet.value in (manufacturers or []) %}checked{% endif %}
+                                onchange="handleManufacturerChange(this)"
+                                class="rounded text-primary focus:ring-primary"
+                            >
+                            <span class="flex-1 truncate" title="{{ facet.value }}">{{ facet.value }}</span>
+                            <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if facets.manufacturers | length > 20 %}
+                    <p class="text-xs text-gray-500 mt-2">+ {{ (facets.manufacturers | length) - 20 }} more. Use search to find others.</p>
+                    {% endif %}
+                    <!-- Hidden container for all manufacturers (for search) -->
+                    <div id="all-manufacturers" class="hidden">
+                        {% for facet in facets.manufacturers %}
+                        <div data-value="{{ facet.value }}" data-name="{{ facet.value | lower }}" data-count="{{ facet.count }}"></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </details>
+
+            <!-- ECLASS ID filter - Multi-select with search -->
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">ECLASS ID</span>
+                    </div>
+                    <button
+                        type="button"
+                        id="clear-eclass-id-btn"
+                        onclick="event.preventDefault(); clearEclassIdFilter()"
+                        class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
+                    >
+                        Clear
+                    </button>
+                </summary>
+                <div class="mt-2 ml-6">
+                    <!-- Search box for ECLASS IDs -->
+                    <div class="relative mb-2">
+                        <input
+                            type="text"
+                            id="eclass-id-search"
+                            placeholder="Search ECLASS IDs..."
+                            class="w-full text-sm border border-gray-300 rounded-md pl-8 pr-3 py-1.5 focus:border-primary focus:ring-primary"
+                            oninput="filterEclassIds(this.value)"
+                        >
+                        <svg class="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <!-- Selected ECLASS IDs (shown as chips) -->
+                    <div id="selected-eclass-ids" class="flex flex-wrap gap-1 mb-2">
+                        {% for eid in (eclass_ids or []) %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
+                            {{ eid }}
+                            <button type="button" onclick="removeEclassId('{{ eid }}')" class="hover:text-gray-200">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <input type="hidden" name="eclass_id" value="{{ eid }}">
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <!-- ECLASS ID list (top 20 + filtered) -->
+                    <div id="eclass-id-list" class="space-y-1 max-h-48 overflow-y-auto">
+                        {% for facet in facets.eclass_ids[:20] %}
+                        <label class="eclass-id-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-value="{{ facet.value }}">
+                            <input
+                                type="checkbox"
+                                name="eclass_id"
+                                value="{{ facet.value }}"
+                                {% if facet.value in (eclass_ids or []) %}checked{% endif %}
+                                onchange="handleEclassIdChange(this)"
+                                class="rounded text-primary focus:ring-primary"
+                            >
+                            <span class="flex-1 truncate" title="{{ facet.name or facet.value }}">{{ facet.value }}</span>
+                            <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if facets.eclass_ids | length > 20 %}
+                    <p class="text-xs text-gray-500 mt-2">+ {{ (facets.eclass_ids | length) - 20 }} more. Use search to find others.</p>
+                    {% endif %}
+                    <!-- Hidden container for all ECLASS IDs (for search) -->
+                    <div id="all-eclass-ids" class="hidden">
+                        {% for facet in facets.eclass_ids %}
+                        <div data-value="{{ facet.value }}" data-name="{{ (facet.name or facet.value) | lower }}" data-count="{{ facet.count }}"></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </details>
+        </div>
+    </aside>
+
+    <!-- Main content -->
+    <div class="flex-1 min-w-0">
+        <!-- Search bar -->
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <div class="flex gap-3 items-center">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input
+                        type="text"
+                        id="search-input"
+                        name="q"
+                        placeholder="Search products..."
+                        value="{{ query or '' }}"
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                        hx-get="/search"
+                        hx-trigger="keyup[key=='Enter'], search"
+                        hx-target="#results-container"
+                        hx-include="{{ filter_include }}"
+                        hx-indicator="#search-spinner"
+                        autocomplete="off"
+                    >
+                    <!-- Loading spinner -->
+                    <div id="search-spinner" class="htmx-indicator absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <svg class="animate-spin h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <!-- Autocomplete dropdown -->
+                    <div id="autocomplete-results" class="absolute z-20 w-full bg-white shadow-lg rounded-b-lg mt-1 hidden">
+                    </div>
+                </div>
+                <!-- Exact match toggle -->
+                <label class="inline-flex items-center cursor-pointer" title="Search for exact matches on EAN, supplier ID, manufacturer ID">
+                    <input
+                        type="checkbox"
+                        id="exact-match"
+                        name="exact_match"
+                        value="true"
+                        class="sr-only peer"
+                        onchange="triggerSearch()"
+                    >
+                    <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <span class="ms-2 text-sm font-medium text-gray-700">Exact</span>
+                </label>
+                <button
+                    type="button"
+                    class="inline-flex items-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                    hx-get="/search"
+                    hx-target="#results-container"
+                    hx-include="{{ filter_include }}"
+                    hx-indicator="#search-spinner"
+                >
+                    <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results-container">
+            {% include "partials/search_results.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}

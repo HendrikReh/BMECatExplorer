@@ -1,0 +1,59 @@
+<tr class="hover:bg-gray-50">
+    <td class="px-6 py-4 w-12" onclick="event.stopPropagation();">
+        <input
+            type="checkbox"
+            class="product-select rounded text-primary focus:ring-primary"
+            value="{{ product.supplier_aid }}"
+            data-product='{{ product | tojson }}'
+            onchange="updateSelectionCount()"
+        >
+    </td>
+    <td class="px-6 py-4 cursor-pointer"
+        hx-get="/product/{{ product.supplier_aid }}"
+        hx-target="#product-modal-content"
+        hx-trigger="click"
+        onclick="openModal()">
+        <div class="flex items-center">
+            {% set image_src = product.image if product.image and product.image.startswith('http') else '/static/img/placeholder.svg' %}
+            <img
+                src="{{ image_src }}"
+                alt=""
+                class="h-10 w-10 rounded object-cover mr-3 bg-gray-100"
+                onerror="this.src='/static/img/placeholder.svg';"
+            >
+            <div class="min-w-0">
+                <div class="text-sm font-medium text-gray-900">{{ product.supplier_aid }}</div>
+                <div class="text-sm text-gray-500 truncate max-w-md" title="{{ product.description_short }}">
+                    {{ product.description_short or '-' }}
+                </div>
+            </div>
+        </div>
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {{ product.manufacturer_name or '-' }}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {% if product.eclass_id %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 gap-1">
+            <span>{{ product.eclass_name or ('Segment ' ~ product.eclass_id[:2]) }}</span>
+            <span class="text-gray-600">({{ product.eclass_id }})</span>
+        </span>
+        {% else %}
+        <span class="text-gray-400">-</span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+        {% if product.price_amount %}
+        {{ product.price_amount | format_price }} {{ product.price_currency or 'EUR' }}
+        {% else %}
+        <span class="text-gray-400">-</span>
+        {% endif %}
+    </td>
+    <td class="px-6 py-4 whitespace-nowrap text-right text-sm cursor-pointer"
+        hx-get="/product/{{ product.supplier_aid }}"
+        hx-target="#product-modal-content"
+        hx-trigger="click"
+        onclick="openModal()">
+        <span class="text-primary hover:text-blue-700">View</span>
+    </td>
+</tr>

@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     openai_embedding_dimensions: int = 1536
     embedding_batch_size: int = 100
 
+    # ECLASS metadata
+    eclass_names_path: str | None = "data/eclass_names.json"
+
     @property
     def postgres_url(self) -> str:
         return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"

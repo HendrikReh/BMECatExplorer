@@ -18,6 +18,7 @@ from src.api.schemas import (
     ScoredProductResult,
 )
 from src.config import settings
+from src.eclass.names import get_eclass_name
 from src.search.client import client
 
 logger = logging.getLogger(__name__)
@@ -156,6 +157,7 @@ def parse_hit_to_result(
         description_short=source.get("description_short"),
         description_long=source.get("description_long"),
         eclass_id=source.get("eclass_id"),
+        eclass_name=get_eclass_name(source.get("eclass_id")),
         price_amount=source.get("price_amount"),
         price_currency=source.get("price_currency"),
         image=source.get("image"),
@@ -202,7 +204,11 @@ def parse_facets(aggs: dict) -> Facets:
             for b in aggs.get("manufacturers", {}).get("buckets", [])
         ],
         eclass_ids=[
-            FacetBucket(value=b["key"], count=b["doc_count"])
+            FacetBucket(
+                value=b["key"],
+                name=get_eclass_name(b["key"]),
+                count=b["doc_count"],
+            )
             for b in aggs.get("eclass_ids", {}).get("buckets", [])
         ],
         catalogs=[
@@ -259,6 +265,10 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
                 raise HTTPException(
                     status_code=400,
                     detail=(
+                        "Vector search requires embedding. "
+                        f"Server embedding failed: {e}"
+                    ),
+                ) from e
                         "Vector search requires embedding. Server embedding failed; "
                         "please try again later."
                     ),
@@ -279,6 +289,7 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
             "query": build_bm25_query(request.q, filters),
             "from": (request.page - 1) * request.size,
             "size": request.size,
+            "track_total_hits": True,
         }
         if request.include_facets:
             body["aggs"] = build_facet_aggs()
@@ -305,6 +316,7 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
         body = {
             "size": request.size,
             "query": build_knn_query(embedding, k=request.size * 2, filters=filters),
+            "track_total_hits": True,
         }
         if request.include_facets:
             body["aggs"] = build_facet_aggs()

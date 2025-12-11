@@ -67,6 +67,7 @@ INDEX_SETTINGS = {
             "quantity_min": {"type": "integer"},
             # Classification
             "eclass_id": {"type": "keyword"},
+            "eclass_name": {"type": "keyword"},
             "eclass_system": {"type": "keyword"},
             # Pricing
             "price_amount": {"type": "float"},

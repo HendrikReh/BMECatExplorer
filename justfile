@@ -60,6 +60,14 @@ serve:
 serve-prod:
     uv run uvicorn src.api.app:app --host 0.0.0.0 --port 9019
 
+# Start frontend server
+serve-frontend:
+    uv run uvicorn frontend.app:app --reload --port 9018
+
+# Start frontend server (production mode)
+serve-frontend-prod:
+    uv run uvicorn frontend.app:app --host 0.0.0.0 --port 9018
+
 # Run unit tests
 test-unit:
     uv run pytest tests/unit -v

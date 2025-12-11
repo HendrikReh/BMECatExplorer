@@ -25,6 +25,9 @@ def create_index(delete_existing: bool = False) -> None:
         if delete_existing:
             client.indices.delete(index=index_name)
         else:
+            print(
+                f"Index '{index_name}' already exists. "
+                "Use delete_existing=True to recreate."
             logger.info(
                 "Index already exists; skipping create "
                 "(set delete_existing=True to recreate)",

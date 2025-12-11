@@ -44,6 +44,11 @@ class ProductResult(BaseModel):
         description="ECLASS classification ID",
         json_schema_extra={"example": "23140307"},
     )
+    eclass_name: str | None = Field(
+        None,
+        description="ECLASS classification name",
+        json_schema_extra={"example": "Pipe clamp"},
+    )
     price_amount: float | None = Field(
         None, description="Product price", json_schema_extra={"example": 360.48}
     )
@@ -87,10 +92,35 @@ class FacetBucket(BaseModel):
         description="Facet value (e.g., manufacturer name)",
         json_schema_extra={"example": "Walraven GmbH"},
     )
+    name: str | None = Field(
+        None, description="Human-readable label (if different from value)"
+    )
     count: int = Field(
         ...,
         description="Number of products with this value",
         json_schema_extra={"example": 150},
+    )
+
+
+class PriceBandBucket(BaseModel):
+    """A price band facet with range and count."""
+
+    key: str = Field(
+        ...,
+        description="Price band identifier",
+        json_schema_extra={"example": "10-50"},
+    )
+    label: str = Field(
+        ...,
+        description="Human-readable label",
+        json_schema_extra={"example": "€10 - €50"},
+    )
+    from_value: float | None = Field(None, description="Lower bound (inclusive)")
+    to_value: float | None = Field(None, description="Upper bound (exclusive)")
+    count: int = Field(
+        ...,
+        description="Number of products in this band",
+        json_schema_extra={"example": 5000},
     )
 
 
@@ -102,6 +132,16 @@ class Facets(BaseModel):
     )
     eclass_ids: list[FacetBucket] = Field(
         default=[], description="ECLASS IDs with product counts"
+    )
+    eclass_segments: list[FacetBucket] = Field(
+        default=[],
+        description="ECLASS segments (first 2 digits) with product counts",
+    )
+    order_units: list[FacetBucket] = Field(
+        default=[], description="Order units (C62=piece, MTR=meter, etc.)"
+    )
+    price_bands: list[PriceBandBucket] = Field(
+        default=[], description="Price range bands with product counts"
     )
     catalogs: list[FacetBucket] = Field(
         default=[], description="Catalog IDs with product counts"
