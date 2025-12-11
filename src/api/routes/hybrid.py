@@ -1,5 +1,6 @@
 """Hybrid search endpoints optimized for RAG retrieval."""
 
+import logging
 import time
 
 from fastapi import APIRouter, HTTPException
@@ -18,6 +19,8 @@ from src.api.schemas import (
 )
 from src.config import settings
 from src.search.client import client
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["hybrid"])
 
@@ -250,16 +253,20 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
             from src.embeddings.client import embed_single
 
             embedding = embed_single(request.q)
-        except Exception as e:
+        except Exception as exc:
+            logger.exception("Embedding generation failed", extra={"mode": actual_mode})
             if actual_mode == "vector":
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        "Vector search requires embedding. "
-                        f"Server embedding failed: {e}"
+                        "Vector search requires embedding. Server embedding failed; "
+                        "please try again later."
                     ),
-                ) from e
+                ) from exc
             # Fall back to BM25 only for hybrid
+            logger.warning(
+                "Embedding generation failed; falling back to BM25-only search"
+            )
             actual_mode = "bm25"
 
     results: list[ScoredProductResult] = []
