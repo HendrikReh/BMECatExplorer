@@ -95,8 +95,11 @@ async def search(
     q: str | None = Query(None),
     manufacturer: str | None = Query(None),
     eclass_id: str | None = Query(None),
+    eclass_segment: str | None = Query(None),
+    order_unit: str | None = Query(None),
     price_min: float | None = Query(None),
     price_max: float | None = Query(None),
+    price_band: str | None = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(default=None),
 ):
@@ -108,14 +111,20 @@ async def search(
     q = q if q else None
     manufacturer = manufacturer if manufacturer else None
     eclass_id = eclass_id if eclass_id else None
+    eclass_segment = eclass_segment if eclass_segment else None
+    order_unit = order_unit if order_unit else None
+    price_band = price_band if price_band else None
 
     try:
         results = await api.search(
             q=q,
             manufacturer=manufacturer,
             eclass_id=eclass_id,
+            eclass_segment=eclass_segment,
+            order_unit=order_unit,
             price_min=price_min,
             price_max=price_max,
+            price_band=price_band,
             page=page,
             size=size,
         )
@@ -142,8 +151,11 @@ async def search(
             "query": q,
             "manufacturer": manufacturer,
             "eclass_id": eclass_id,
+            "eclass_segment": eclass_segment,
+            "order_unit": order_unit,
             "price_min": price_min,
             "price_max": price_max,
+            "price_band": price_band,
         },
     )
 

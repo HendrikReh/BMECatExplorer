@@ -1,3 +1,6 @@
+{# Build filter query string macro #}
+{% macro filter_params() %}{% if query %}&q={{ query }}{% endif %}{% if manufacturer %}&manufacturer={{ manufacturer }}{% endif %}{% if eclass_id %}&eclass_id={{ eclass_id }}{% endif %}{% if eclass_segment %}&eclass_segment={{ eclass_segment }}{% endif %}{% if order_unit %}&order_unit={{ order_unit }}{% endif %}{% if price_band %}&price_band={{ price_band }}{% endif %}{% endmacro %}
+
 <nav class="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 sm:px-6 mt-4 rounded-b-lg">
     <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
         <div>
@@ -15,7 +18,7 @@
             <div class="isolate inline-flex -space-x-px rounded-md shadow-sm">
                 {% if page > 1 %}
                 <button
-                    hx-get="/search?page={{ page - 1 }}{% if query %}&q={{ query }}{% endif %}{% if manufacturer %}&manufacturer={{ manufacturer }}{% endif %}{% if eclass_id %}&eclass_id={{ eclass_id }}{% endif %}{% if price_min %}&price_min={{ price_min }}{% endif %}{% if price_max %}&price_max={{ price_max }}{% endif %}"
+                    hx-get="/search?page={{ page - 1 }}{{ filter_params() }}"
                     hx-target="#results-container"
                     class="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                 >
@@ -36,7 +39,7 @@
                 <!-- Page numbers -->
                 {% for p in page_range %}
                 <button
-                    hx-get="/search?page={{ p }}{% if query %}&q={{ query }}{% endif %}{% if manufacturer %}&manufacturer={{ manufacturer }}{% endif %}{% if eclass_id %}&eclass_id={{ eclass_id }}{% endif %}{% if price_min %}&price_min={{ price_min }}{% endif %}{% if price_max %}&price_max={{ price_max }}{% endif %}"
+                    hx-get="/search?page={{ p }}{{ filter_params() }}"
                     hx-target="#results-container"
                     class="relative inline-flex items-center px-4 py-2 text-sm font-semibold
                            {% if p == page %}bg-primary text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary{% else %}text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0{% endif %}"
@@ -47,7 +50,7 @@
 
                 {% if page < total_pages %}
                 <button
-                    hx-get="/search?page={{ page + 1 }}{% if query %}&q={{ query }}{% endif %}{% if manufacturer %}&manufacturer={{ manufacturer }}{% endif %}{% if eclass_id %}&eclass_id={{ eclass_id }}{% endif %}{% if price_min %}&price_min={{ price_min }}{% endif %}{% if price_max %}&price_max={{ price_max }}{% endif %}"
+                    hx-get="/search?page={{ page + 1 }}{{ filter_params() }}"
                     hx-target="#results-container"
                     class="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
                 >
@@ -72,7 +75,7 @@
     <div class="flex flex-1 justify-between sm:hidden">
         {% if page > 1 %}
         <button
-            hx-get="/search?page={{ page - 1 }}{% if query %}&q={{ query }}{% endif %}{% if manufacturer %}&manufacturer={{ manufacturer }}{% endif %}{% if eclass_id %}&eclass_id={{ eclass_id }}{% endif %}{% if price_min %}&price_min={{ price_min }}{% endif %}{% if price_max %}&price_max={{ price_max }}{% endif %}"
+            hx-get="/search?page={{ page - 1 }}{{ filter_params() }}"
             hx-target="#results-container"
             class="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
@@ -81,7 +84,7 @@
         {% endif %}
         {% if page < total_pages %}
         <button
-            hx-get="/search?page={{ page + 1 }}{% if query %}&q={{ query }}{% endif %}{% if manufacturer %}&manufacturer={{ manufacturer }}{% endif %}{% if eclass_id %}&eclass_id={{ eclass_id }}{% endif %}{% if price_min %}&price_min={{ price_min }}{% endif %}{% if price_max %}&price_max={{ price_max }}{% endif %}"
+            hx-get="/search?page={{ page + 1 }}{{ filter_params() }}"
             hx-target="#results-container"
             class="relative ml-auto inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >

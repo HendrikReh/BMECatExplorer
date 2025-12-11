@@ -28,8 +28,11 @@ class APIClient:
         q: str | None = None,
         manufacturer: str | None = None,
         eclass_id: str | None = None,
+        eclass_segment: str | None = None,
+        order_unit: str | None = None,
         price_min: float | None = None,
         price_max: float | None = None,
+        price_band: str | None = None,
         page: int = 1,
         size: int = 25,
     ) -> dict:
@@ -39,8 +42,11 @@ class APIClient:
             q: Search query text
             manufacturer: Filter by manufacturer name
             eclass_id: Filter by ECLASS ID
+            eclass_segment: Filter by ECLASS segment (first 2 digits)
+            order_unit: Filter by order unit (C62, MTR, etc.)
             price_min: Minimum price filter
             price_max: Maximum price filter
+            price_band: Filter by price band (0-10, 10-50, etc.)
             page: Page number (1-indexed)
             size: Results per page
 
@@ -54,10 +60,16 @@ class APIClient:
             params["manufacturer"] = manufacturer
         if eclass_id:
             params["eclass_id"] = eclass_id
+        if eclass_segment:
+            params["eclass_segment"] = eclass_segment
+        if order_unit:
+            params["order_unit"] = order_unit
         if price_min is not None:
             params["price_min"] = price_min
         if price_max is not None:
             params["price_max"] = price_max
+        if price_band:
+            params["price_band"] = price_band
         return await self._get("/api/v1/search", params)
 
     async def autocomplete(self, q: str) -> list[str]:

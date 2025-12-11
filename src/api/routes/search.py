@@ -7,6 +7,7 @@ from src.api.schemas import (
     AutocompleteResponse,
     FacetBucket,
     Facets,
+    PriceBandBucket,
     ProductResult,
     SearchResponse,
 )
@@ -21,6 +22,8 @@ def build_search_query(
     q: str | None,
     manufacturer: str | None,
     eclass_id: str | None,
+    eclass_segment: str | None,
+    order_unit: str | None,
     price_min: float | None,
     price_max: float | None,
 ) -> dict:
@@ -51,9 +54,17 @@ def build_search_query(
     if manufacturer:
         filter_clauses.append({"term": {"manufacturer_name.keyword": manufacturer}})
 
-    # ECLASS filter
+    # ECLASS filter (exact match)
     if eclass_id:
         filter_clauses.append({"term": {"eclass_id": eclass_id}})
+
+    # ECLASS segment filter (prefix match on first 2 digits)
+    if eclass_segment:
+        filter_clauses.append({"prefix": {"eclass_id": eclass_segment}})
+
+    # Order unit filter
+    if order_unit:
+        filter_clauses.append({"term": {"order_unit": order_unit}})
 
     # Price range filter
     if price_min is not None or price_max is not None:
@@ -78,6 +89,66 @@ def build_search_query(
     return query
 
 
+# ECLASS segment names (first 2 digits)
+ECLASS_SEGMENTS = {
+    "21": "Fasteners, fixing",
+    "22": "Machine tools",
+    "23": "Industrial automation",
+    "24": "Plastics machinery",
+    "25": "Process engineering",
+    "26": "Energy technology",
+    "27": "Electrical engineering",
+    "28": "Construction",
+    "29": "HVAC",
+    "30": "Packaging",
+    "31": "Vehicles",
+    "32": "Electronics",
+    "33": "Information technology",
+    "34": "Office, furniture",
+    "35": "Food, agriculture",
+    "36": "Medical, laboratory",
+    "37": "Safety, security",
+    "38": "Services",
+    "39": "Mining, raw materials",
+}
+
+# Order unit labels
+ORDER_UNIT_LABELS = {
+    "C62": "Piece",
+    "MTR": "Meter",
+    "PK": "Pack",
+    "SET": "Set",
+    "PR": "Pair",
+    "RO": "Roll",
+    "CT": "Carton",
+    "CL": "Coil",
+    "BG": "Bag",
+    "RD": "Rod",
+}
+
+# Price band definitions
+PRICE_BANDS = [
+    {"key": "0-10", "label": "€0 - €10", "from": 0, "to": 10},
+    {"key": "10-50", "label": "€10 - €50", "from": 10, "to": 50},
+    {"key": "50-200", "label": "€50 - €200", "from": 50, "to": 200},
+    {"key": "200-1000", "label": "€200 - €1,000", "from": 200, "to": 1000},
+    {"key": "1000+", "label": "€1,000+", "from": 1000, "to": None},
+]
+
+
+def build_price_band_aggs() -> dict:
+    """Build price band range aggregation."""
+    ranges = []
+    for band in PRICE_BANDS:
+        r = {"key": band["key"]}
+        if band["from"] is not None:
+            r["from"] = band["from"]
+        if band["to"] is not None:
+            r["to"] = band["to"]
+        ranges.append(r)
+    return {"range": {"field": "price_amount", "ranges": ranges}}
+
+
 @router.get("/search", response_model=SearchResponse, summary="Search products")
 async def search_products(
     q: str | None = Query(
@@ -96,11 +167,26 @@ async def search_products(
     eclass_id: str | None = Query(
         None, description="Filter by ECLASS classification ID", examples=["23140307"]
     ),
+    eclass_segment: str | None = Query(
+        None,
+        description="Filter by ECLASS segment (first 2 digits)",
+        examples=["27"],
+    ),
+    order_unit: str | None = Query(
+        None,
+        description="Filter by order unit (C62=piece, MTR=meter, etc.)",
+        examples=["C62"],
+    ),
     price_min: float | None = Query(
         None, ge=0, description="Minimum price filter (inclusive)", examples=[100]
     ),
     price_max: float | None = Query(
         None, ge=0, description="Maximum price filter (inclusive)", examples=[500]
+    ),
+    price_band: str | None = Query(
+        None,
+        description="Filter by price band (0-10, 10-50, 50-200, 200-1000, 1000+)",
+        examples=["50-200"],
     ),
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     size: int = Query(
@@ -112,12 +198,25 @@ async def search_products(
 
     - **Full-text search**: Uses German analyzer with fuzzy matching
     - **Filters**: Can be combined with text search
-    - **Facets**: Returns aggregated counts for manufacturers and ECLASS IDs
+    - **Facets**: Returns aggregated counts for manufacturers, ECLASS, order units,
+      price bands
     - **Pagination**: Use page and size parameters
 
     Returns matching products sorted by relevance score.
     """
-    query = build_search_query(q, manufacturer, eclass_id, price_min, price_max)
+    # Handle price_band filter - convert to price_min/price_max
+    if price_band:
+        for band in PRICE_BANDS:
+            if band["key"] == price_band:
+                if price_min is None:
+                    price_min = band["from"]
+                if price_max is None and band["to"] is not None:
+                    price_max = band["to"]
+                break
+
+    query = build_search_query(
+        q, manufacturer, eclass_id, eclass_segment, order_unit, price_min, price_max
+    )
 
     body = {
         "query": query,
@@ -129,6 +228,15 @@ async def search_products(
                 "terms": {"field": "manufacturer_name.keyword", "size": 50}
             },
             "eclass_ids": {"terms": {"field": "eclass_id", "size": 50}},
+            "eclass_segments": {
+                "terms": {
+                    "field": "eclass_id",
+                    "size": 100,
+                    "script": "_value.substring(0, 2)",
+                }
+            },
+            "order_units": {"terms": {"field": "order_unit", "size": 20}},
+            "price_bands": build_price_band_aggs(),
         },
     }
 
@@ -169,6 +277,35 @@ async def search_products(
                 count=b["doc_count"],
             )
             for b in aggs.get("eclass_ids", {}).get("buckets", [])
+        ],
+        eclass_segments=[
+            FacetBucket(
+                value=b["key"],
+                name=ECLASS_SEGMENTS.get(b["key"], f"Segment {b['key']}"),
+                count=b["doc_count"],
+            )
+            for b in aggs.get("eclass_segments", {}).get("buckets", [])
+        ],
+        order_units=[
+            FacetBucket(
+                value=b["key"],
+                name=ORDER_UNIT_LABELS.get(b["key"], b["key"]),
+                count=b["doc_count"],
+            )
+            for b in aggs.get("order_units", {}).get("buckets", [])
+        ],
+        price_bands=[
+            PriceBandBucket(
+                key=b["key"],
+                label=next(
+                    (pb["label"] for pb in PRICE_BANDS if pb["key"] == b["key"]),
+                    b["key"],
+                ),
+                from_value=b.get("from"),
+                to_value=b.get("to"),
+                count=b["doc_count"],
+            )
+            for b in aggs.get("price_bands", {}).get("buckets", [])
         ],
     )
 
@@ -267,6 +404,9 @@ async def get_facets() -> Facets:
     Returns aggregated counts for:
     - **manufacturers**: Top 100 manufacturer names with product counts
     - **eclass_ids**: Top 100 ECLASS classification IDs with product counts
+    - **eclass_segments**: ECLASS segments (first 2 digits) with names
+    - **order_units**: Order units (C62=piece, MTR=meter, etc.)
+    - **price_bands**: Price range bands
 
     Use these values to populate filter dropdowns in the UI.
     """
@@ -277,6 +417,15 @@ async def get_facets() -> Facets:
                 "terms": {"field": "manufacturer_name.keyword", "size": 100}
             },
             "eclass_ids": {"terms": {"field": "eclass_id", "size": 100}},
+            "eclass_segments": {
+                "terms": {
+                    "field": "eclass_id",
+                    "size": 100,
+                    "script": "_value.substring(0, 2)",
+                }
+            },
+            "order_units": {"terms": {"field": "order_unit", "size": 20}},
+            "price_bands": build_price_band_aggs(),
         },
     }
 
@@ -295,5 +444,34 @@ async def get_facets() -> Facets:
                 count=b["doc_count"],
             )
             for b in aggs.get("eclass_ids", {}).get("buckets", [])
+        ],
+        eclass_segments=[
+            FacetBucket(
+                value=b["key"],
+                name=ECLASS_SEGMENTS.get(b["key"], f"Segment {b['key']}"),
+                count=b["doc_count"],
+            )
+            for b in aggs.get("eclass_segments", {}).get("buckets", [])
+        ],
+        order_units=[
+            FacetBucket(
+                value=b["key"],
+                name=ORDER_UNIT_LABELS.get(b["key"], b["key"]),
+                count=b["doc_count"],
+            )
+            for b in aggs.get("order_units", {}).get("buckets", [])
+        ],
+        price_bands=[
+            PriceBandBucket(
+                key=b["key"],
+                label=next(
+                    (pb["label"] for pb in PRICE_BANDS if pb["key"] == b["key"]),
+                    b["key"],
+                ),
+                from_value=b.get("from"),
+                to_value=b.get("to"),
+                count=b["doc_count"],
+            )
+            for b in aggs.get("price_bands", {}).get("buckets", [])
         ],
     )

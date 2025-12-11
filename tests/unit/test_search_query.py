@@ -15,6 +15,8 @@ class TestBuildSearchQuery:
             q=None,
             manufacturer=None,
             eclass_id=None,
+            eclass_segment=None,
+            order_unit=None,
             price_min=None,
             price_max=None,
         )
@@ -26,6 +28,8 @@ class TestBuildSearchQuery:
             q="Kabel",
             manufacturer=None,
             eclass_id=None,
+            eclass_segment=None,
+            order_unit=None,
             price_min=None,
             price_max=None,
         )
@@ -40,6 +44,8 @@ class TestBuildSearchQuery:
             q=None,
             manufacturer="Walraven GmbH",
             eclass_id=None,
+            eclass_segment=None,
+            order_unit=None,
             price_min=None,
             price_max=None,
         )
@@ -54,11 +60,41 @@ class TestBuildSearchQuery:
             q=None,
             manufacturer=None,
             eclass_id="23140307",
+            eclass_segment=None,
+            order_unit=None,
             price_min=None,
             price_max=None,
         )
         filters = query["bool"]["filter"]
         assert {"term": {"eclass_id": "23140307"}} in filters
+
+    def test_eclass_segment_filter(self):
+        """Test ECLASS segment (2-digit prefix) filter."""
+        query = build_search_query(
+            q=None,
+            manufacturer=None,
+            eclass_id=None,
+            eclass_segment="27",
+            order_unit=None,
+            price_min=None,
+            price_max=None,
+        )
+        filters = query["bool"]["filter"]
+        assert {"prefix": {"eclass_id": "27"}} in filters
+
+    def test_order_unit_filter(self):
+        """Test order unit filter."""
+        query = build_search_query(
+            q=None,
+            manufacturer=None,
+            eclass_id=None,
+            eclass_segment=None,
+            order_unit="MTR",
+            price_min=None,
+            price_max=None,
+        )
+        filters = query["bool"]["filter"]
+        assert {"term": {"order_unit": "MTR"}} in filters
 
     def test_price_range_filter(self):
         """Test price range filter."""
@@ -66,6 +102,8 @@ class TestBuildSearchQuery:
             q=None,
             manufacturer=None,
             eclass_id=None,
+            eclass_segment=None,
+            order_unit=None,
             price_min=100.0,
             price_max=500.0,
         )
@@ -81,6 +119,8 @@ class TestBuildSearchQuery:
             q=None,
             manufacturer=None,
             eclass_id=None,
+            eclass_segment=None,
+            order_unit=None,
             price_min=50.0,
             price_max=None,
         )
@@ -93,6 +133,8 @@ class TestBuildSearchQuery:
             q=None,
             manufacturer=None,
             eclass_id=None,
+            eclass_segment=None,
+            order_unit=None,
             price_min=None,
             price_max=1000.0,
         )
@@ -105,6 +147,8 @@ class TestBuildSearchQuery:
             q="Trägerklammer",
             manufacturer="Walraven GmbH",
             eclass_id="23140307",
+            eclass_segment=None,
+            order_unit=None,
             price_min=100.0,
             price_max=500.0,
         )

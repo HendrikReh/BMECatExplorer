@@ -77,3 +77,30 @@ document.body.addEventListener('htmx:afterSwap', function(event) {
         }
     }
 });
+
+// Clear filters and search
+function clearFilters() {
+    // Clear all form inputs
+    const searchInput = document.getElementById('search-input');
+    const manufacturer = document.getElementById('manufacturer');
+    const eclassId = document.getElementById('eclass_id');
+    const eclassSegment = document.getElementById('eclass_segment');
+    const orderUnit = document.getElementById('order_unit');
+    const priceBandRadios = document.querySelectorAll('[name="price_band"]');
+
+    if (searchInput) searchInput.value = '';
+    if (manufacturer) manufacturer.value = '';
+    if (eclassId) eclassId.value = '';
+    if (eclassSegment) eclassSegment.value = '';
+    if (orderUnit) orderUnit.value = '';
+
+    // Clear price band radio buttons (select "Any price")
+    priceBandRadios.forEach(radio => {
+        radio.checked = (radio.value === '');
+    });
+
+    // Trigger a fresh search with cleared params
+    htmx.ajax('GET', '/search', {
+        target: '#results-container',
+    });
+}

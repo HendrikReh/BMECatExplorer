@@ -2,15 +2,107 @@
 
 {% block title %}Search - BMECatDemo Admin{% endblock %}
 
+{# Macro for hx-include with all filter fields #}
+{% set filter_include = "#search-input, [name='manufacturer'], [name='eclass_id'], [name='eclass_segment'], [name='order_unit'], [name='price_band']" %}
+
 {% block content %}
 <div class="flex gap-6">
     <!-- Filter Sidebar -->
-    <aside class="w-64 flex-shrink-0">
-        <div class="bg-white rounded-lg shadow p-4 sticky top-6">
-            <h2 class="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
+    <aside class="w-72 flex-shrink-0">
+        <div class="bg-white rounded-lg shadow p-4 sticky top-6 space-y-6 max-h-[calc(100vh-3rem)] overflow-y-auto">
+            <div class="flex justify-between items-center">
+                <h2 class="text-lg font-semibold text-gray-900">Filters</h2>
+                <button
+                    type="button"
+                    onclick="clearFilters()"
+                    class="text-xs text-gray-500 hover:text-gray-700 underline"
+                >
+                    Clear all
+                </button>
+            </div>
+
+            <!-- ECLASS Segment filter (Priority 1) -->
+            <div>
+                <label for="eclass_segment" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                    id="eclass_segment"
+                    name="eclass_segment"
+                    hx-get="/search"
+                    hx-trigger="change"
+                    hx-target="#results-container"
+                    hx-include="{{ filter_include }}"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
+                >
+                    <option value="">All categories</option>
+                    {% for facet in facets.eclass_segments %}
+                    <option value="{{ facet.value }}" {% if eclass_segment == facet.value %}selected{% endif %}>
+                        {{ facet.name }} ({{ facet.count | format_number }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Price Bands filter (Priority 2) -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                <div class="space-y-1">
+                    {% for band in facets.price_bands %}
+                    <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                            type="radio"
+                            name="price_band"
+                            value="{{ band.key }}"
+                            {% if price_band == band.key %}checked{% endif %}
+                            hx-get="/search"
+                            hx-trigger="change"
+                            hx-target="#results-container"
+                            hx-include="{{ filter_include }}"
+                            class="text-primary focus:ring-primary"
+                        >
+                        <span class="flex-1">{{ band.label }}</span>
+                        <span class="text-gray-400 text-xs">{{ band.count | format_number }}</span>
+                    </label>
+                    {% endfor %}
+                    <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
+                        <input
+                            type="radio"
+                            name="price_band"
+                            value=""
+                            {% if not price_band %}checked{% endif %}
+                            hx-get="/search"
+                            hx-trigger="change"
+                            hx-target="#results-container"
+                            hx-include="{{ filter_include }}"
+                            class="text-primary focus:ring-primary"
+                        >
+                        <span class="flex-1 text-gray-500">Any price</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Order Unit filter (Priority 3) -->
+            <div>
+                <label for="order_unit" class="block text-sm font-medium text-gray-700 mb-2">Unit</label>
+                <select
+                    id="order_unit"
+                    name="order_unit"
+                    hx-get="/search"
+                    hx-trigger="change"
+                    hx-target="#results-container"
+                    hx-include="{{ filter_include }}"
+                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
+                >
+                    <option value="">All units</option>
+                    {% for facet in facets.order_units %}
+                    <option value="{{ facet.value }}" {% if order_unit == facet.value %}selected{% endif %}>
+                        {{ facet.name }} ({{ facet.count | format_number }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
             <!-- Manufacturer filter -->
-            <div class="mb-6">
+            <div>
                 <label for="manufacturer" class="block text-sm font-medium text-gray-700 mb-2">Manufacturer</label>
                 <select
                     id="manufacturer"
@@ -18,76 +110,38 @@
                     hx-get="/search"
                     hx-trigger="change"
                     hx-target="#results-container"
-                    hx-include="#search-input, [name='eclass_id'], [name='price_min'], [name='price_max']"
+                    hx-include="{{ filter_include }}"
                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
                 >
                     <option value="">All manufacturers</option>
                     {% for facet in facets.manufacturers %}
                     <option value="{{ facet.value }}" {% if manufacturer == facet.value %}selected{% endif %}>
-                        {{ facet.value }} ({{ facet.count }})
+                        {{ facet.value }} ({{ facet.count | format_number }})
                     </option>
                     {% endfor %}
                 </select>
             </div>
 
-            <!-- ECLASS filter -->
-            <div class="mb-6">
-                <label for="eclass_id" class="block text-sm font-medium text-gray-700 mb-2">ECLASS Category</label>
+            <!-- ECLASS ID filter (detailed) -->
+            <div>
+                <label for="eclass_id" class="block text-sm font-medium text-gray-700 mb-2">ECLASS ID</label>
                 <select
                     id="eclass_id"
                     name="eclass_id"
                     hx-get="/search"
                     hx-trigger="change"
                     hx-target="#results-container"
-                    hx-include="#search-input, [name='manufacturer'], [name='price_min'], [name='price_max']"
+                    hx-include="{{ filter_include }}"
                     class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
                 >
-                    <option value="">All categories</option>
+                    <option value="">All ECLASS IDs</option>
                     {% for facet in facets.eclass_ids %}
                     <option value="{{ facet.value }}" {% if eclass_id == facet.value %}selected{% endif %}>
-                        {{ facet.value }} ({{ facet.count }})
+                        {{ facet.value }} ({{ facet.count | format_number }})
                     </option>
                     {% endfor %}
                 </select>
             </div>
-
-            <!-- Price range -->
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Price Range (EUR)</label>
-                <div class="flex gap-2">
-                    <input
-                        type="number"
-                        name="price_min"
-                        placeholder="Min"
-                        value="{{ price_min or '' }}"
-                        class="w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
-                        hx-get="/search"
-                        hx-trigger="change delay:500ms"
-                        hx-target="#results-container"
-                        hx-include="#search-input, [name='manufacturer'], [name='eclass_id'], [name='price_max']"
-                    >
-                    <input
-                        type="number"
-                        name="price_max"
-                        placeholder="Max"
-                        value="{{ price_max or '' }}"
-                        class="w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary text-sm"
-                        hx-get="/search"
-                        hx-trigger="change delay:500ms"
-                        hx-target="#results-container"
-                        hx-include="#search-input, [name='manufacturer'], [name='eclass_id'], [name='price_min']"
-                    >
-                </div>
-            </div>
-
-            <!-- Clear filters -->
-            <button
-                hx-get="/search"
-                hx-target="#results-container"
-                class="w-full py-2 px-4 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-                Clear all filters
-            </button>
         </div>
     </aside>
 
@@ -95,36 +149,51 @@
     <div class="flex-1 min-w-0">
         <!-- Search bar -->
         <div class="bg-white rounded-lg shadow p-4 mb-6">
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="flex gap-3 items-center">
+                <div class="relative flex-1">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <input
+                        type="text"
+                        id="search-input"
+                        name="q"
+                        placeholder="Search products..."
+                        value="{{ query or '' }}"
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary text-sm"
+                        hx-get="/search"
+                        hx-trigger="keyup[key=='Enter'], search"
+                        hx-target="#results-container"
+                        hx-include="{{ filter_include }}"
+                        hx-indicator="#search-spinner"
+                        autocomplete="off"
+                    >
+                    <!-- Loading spinner -->
+                    <div id="search-spinner" class="htmx-indicator absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <svg class="animate-spin h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                    <!-- Autocomplete dropdown -->
+                    <div id="autocomplete-results" class="absolute z-20 w-full bg-white shadow-lg rounded-b-lg mt-1 hidden">
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    class="inline-flex items-center px-4 py-3 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                    hx-get="/search"
+                    hx-target="#results-container"
+                    hx-include="{{ filter_include }}"
+                    hx-indicator="#search-spinner"
+                >
+                    <svg class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                </div>
-                <input
-                    type="text"
-                    id="search-input"
-                    name="q"
-                    placeholder="Search products by description, manufacturer, article ID..."
-                    value="{{ query or '' }}"
-                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary text-sm"
-                    hx-get="/search"
-                    hx-trigger="keyup[key=='Enter'], search"
-                    hx-target="#results-container"
-                    hx-include="[name='manufacturer'], [name='eclass_id'], [name='price_min'], [name='price_max']"
-                    hx-indicator="#search-spinner"
-                    autocomplete="off"
-                >
-                <!-- Loading spinner -->
-                <div id="search-spinner" class="htmx-indicator absolute inset-y-0 right-0 pr-3 flex items-center">
-                    <svg class="animate-spin h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </div>
-                <!-- Autocomplete dropdown -->
-                <div id="autocomplete-results" class="absolute z-20 w-full bg-white shadow-lg rounded-b-lg mt-1 hidden">
-                </div>
+                    Search
+                </button>
             </div>
         </div>
 
