@@ -22,19 +22,24 @@
             </div>
 
             <!-- ECLASS Segment filter (Priority 1) - Multi-select -->
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-sm font-medium text-gray-700">Category</label>
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Category</span>
+                    </div>
                     <button
                         type="button"
                         id="clear-category-btn"
-                        onclick="clearCategoryFilter()"
+                        onclick="event.preventDefault(); clearCategoryFilter()"
                         class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
                     >
                         Clear
                     </button>
-                </div>
-                <div class="space-y-1 max-h-64 overflow-y-auto">
+                </summary>
+                <div class="space-y-1 max-h-64 overflow-y-auto mt-2 ml-6">
                     {% for facet in facets.eclass_segments %}
                     <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
                         <input
@@ -54,22 +59,27 @@
                     </label>
                     {% endfor %}
                 </div>
-            </div>
+            </details>
 
             <!-- Price Bands filter (Priority 2) -->
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-sm font-medium text-gray-700">Price Range</label>
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Price Range</span>
+                    </div>
                     <button
                         type="button"
                         id="clear-price-btn"
-                        onclick="clearPriceFilter()"
+                        onclick="event.preventDefault(); clearPriceFilter()"
                         class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
                     >
                         Clear
                     </button>
-                </div>
-                <div class="space-y-1">
+                </summary>
+                <div class="space-y-1 mt-2 ml-6">
                     {% for band in facets.price_bands %}
                     <label class="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded">
                         <input
@@ -102,189 +112,210 @@
                         <span class="flex-1 text-gray-500">Any price</span>
                     </label>
                 </div>
-            </div>
+            </details>
 
             <!-- Order Unit filter (Priority 3) - Multi-select -->
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-sm font-medium text-gray-700">Unit</label>
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Unit</span>
+                    </div>
                     <button
                         type="button"
                         id="clear-unit-btn"
-                        onclick="clearUnitFilter()"
+                        onclick="event.preventDefault(); clearUnitFilter()"
                         class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
                     >
                         Clear
                     </button>
+                </summary>
+                <div class="mt-2 ml-6">
+                    <!-- Selected units (shown as chips) -->
+                    <div id="selected-units" class="flex flex-wrap gap-1 mb-2">
+                        {% for unit in (order_units or []) %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
+                            {{ unit }}
+                            <button type="button" onclick="removeUnit('{{ unit }}')" class="hover:text-gray-200">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <input type="hidden" name="order_unit" value="{{ unit }}">
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <!-- Unit list -->
+                    <div id="unit-list" class="space-y-1 max-h-48 overflow-y-auto">
+                        {% for facet in facets.order_units %}
+                        <label class="unit-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-value="{{ facet.value }}">
+                            <input
+                                type="checkbox"
+                                name="order_unit"
+                                value="{{ facet.value }}"
+                                {% if facet.value in (order_units or []) %}checked{% endif %}
+                                onchange="handleUnitChange(this)"
+                                class="rounded text-primary focus:ring-primary"
+                            >
+                            <span class="flex-1 truncate" title="{{ facet.name }}">{{ facet.name }}</span>
+                            <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
                 </div>
-                <!-- Selected units (shown as chips) -->
-                <div id="selected-units" class="flex flex-wrap gap-1 mb-2">
-                    {% for unit in (order_units or []) %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
-                        {{ unit }}
-                        <button type="button" onclick="removeUnit('{{ unit }}')" class="hover:text-gray-200">
-                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <input type="hidden" name="order_unit" value="{{ unit }}">
-                    </span>
-                    {% endfor %}
-                </div>
-                <!-- Unit list -->
-                <div id="unit-list" class="space-y-1 max-h-48 overflow-y-auto">
-                    {% for facet in facets.order_units %}
-                    <label class="unit-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-value="{{ facet.value }}">
-                        <input
-                            type="checkbox"
-                            name="order_unit"
-                            value="{{ facet.value }}"
-                            {% if facet.value in (order_units or []) %}checked{% endif %}
-                            onchange="handleUnitChange(this)"
-                            class="rounded text-primary focus:ring-primary"
-                        >
-                        <span class="flex-1 truncate" title="{{ facet.name }}">{{ facet.name }}</span>
-                        <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
-                    </label>
-                    {% endfor %}
-                </div>
-            </div>
+            </details>
 
             <!-- Manufacturer filter - Multi-select with search -->
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-sm font-medium text-gray-700">Manufacturer</label>
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">Manufacturer</span>
+                    </div>
                     <button
                         type="button"
                         id="clear-manufacturer-btn"
-                        onclick="clearManufacturerFilter()"
+                        onclick="event.preventDefault(); clearManufacturerFilter()"
                         class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
                     >
                         Clear
                     </button>
-                </div>
-                <!-- Search box for manufacturers -->
-                <div class="relative mb-2">
-                    <input
-                        type="text"
-                        id="manufacturer-search"
-                        placeholder="Search manufacturers..."
-                        class="w-full text-sm border border-gray-300 rounded-md pl-8 pr-3 py-1.5 focus:border-primary focus:ring-primary"
-                        oninput="filterManufacturers(this.value)"
-                    >
-                    <svg class="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
-                <!-- Selected manufacturers (shown as chips) -->
-                <div id="selected-manufacturers" class="flex flex-wrap gap-1 mb-2">
-                    {% for mfr in (manufacturers or []) %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
-                        {{ mfr }}
-                        <button type="button" onclick="removeManufacturer('{{ mfr }}')" class="hover:text-gray-200">
-                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <input type="hidden" name="manufacturer" value="{{ mfr }}">
-                    </span>
-                    {% endfor %}
-                </div>
-                <!-- Manufacturer list (top 20 + filtered) -->
-                <div id="manufacturer-list" class="space-y-1 max-h-48 overflow-y-auto">
-                    {% for facet in facets.manufacturers[:20] %}
-                    <label class="manufacturer-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-name="{{ facet.value | lower }}">
+                </summary>
+                <div class="mt-2 ml-6">
+                    <!-- Search box for manufacturers -->
+                    <div class="relative mb-2">
                         <input
-                            type="checkbox"
-                            name="manufacturer"
-                            value="{{ facet.value }}"
-                            {% if facet.value in (manufacturers or []) %}checked{% endif %}
-                            onchange="handleManufacturerChange(this)"
-                            class="rounded text-primary focus:ring-primary"
+                            type="text"
+                            id="manufacturer-search"
+                            placeholder="Search manufacturers..."
+                            class="w-full text-sm border border-gray-300 rounded-md pl-8 pr-3 py-1.5 focus:border-primary focus:ring-primary"
+                            oninput="filterManufacturers(this.value)"
                         >
-                        <span class="flex-1 truncate" title="{{ facet.value }}">{{ facet.value }}</span>
-                        <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
-                    </label>
-                    {% endfor %}
+                        <svg class="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <!-- Selected manufacturers (shown as chips) -->
+                    <div id="selected-manufacturers" class="flex flex-wrap gap-1 mb-2">
+                        {% for mfr in (manufacturers or []) %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
+                            {{ mfr }}
+                            <button type="button" onclick="removeManufacturer('{{ mfr }}')" class="hover:text-gray-200">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <input type="hidden" name="manufacturer" value="{{ mfr }}">
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <!-- Manufacturer list (top 20 + filtered) -->
+                    <div id="manufacturer-list" class="space-y-1 max-h-48 overflow-y-auto">
+                        {% for facet in facets.manufacturers[:20] %}
+                        <label class="manufacturer-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-name="{{ facet.value | lower }}">
+                            <input
+                                type="checkbox"
+                                name="manufacturer"
+                                value="{{ facet.value }}"
+                                {% if facet.value in (manufacturers or []) %}checked{% endif %}
+                                onchange="handleManufacturerChange(this)"
+                                class="rounded text-primary focus:ring-primary"
+                            >
+                            <span class="flex-1 truncate" title="{{ facet.value }}">{{ facet.value }}</span>
+                            <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if facets.manufacturers | length > 20 %}
+                    <p class="text-xs text-gray-500 mt-2">+ {{ (facets.manufacturers | length) - 20 }} more. Use search to find others.</p>
+                    {% endif %}
+                    <!-- Hidden container for all manufacturers (for search) -->
+                    <div id="all-manufacturers" class="hidden">
+                        {% for facet in facets.manufacturers %}
+                        <div data-value="{{ facet.value }}" data-name="{{ facet.value | lower }}" data-count="{{ facet.count }}"></div>
+                        {% endfor %}
+                    </div>
                 </div>
-                {% if facets.manufacturers | length > 20 %}
-                <p class="text-xs text-gray-500 mt-2">+ {{ (facets.manufacturers | length) - 20 }} more. Use search to find others.</p>
-                {% endif %}
-                <!-- Hidden container for all manufacturers (for search) -->
-                <div id="all-manufacturers" class="hidden">
-                    {% for facet in facets.manufacturers %}
-                    <div data-value="{{ facet.value }}" data-name="{{ facet.value | lower }}" data-count="{{ facet.count }}"></div>
-                    {% endfor %}
-                </div>
-            </div>
+            </details>
 
             <!-- ECLASS ID filter - Multi-select with search -->
-            <div>
-                <div class="flex justify-between items-center mb-2">
-                    <label class="block text-sm font-medium text-gray-700">ECLASS ID</label>
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer list-none">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-700">ECLASS ID</span>
+                    </div>
                     <button
                         type="button"
                         id="clear-eclass-id-btn"
-                        onclick="clearEclassIdFilter()"
+                        onclick="event.preventDefault(); clearEclassIdFilter()"
                         class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
                     >
                         Clear
                     </button>
-                </div>
-                <!-- Search box for ECLASS IDs -->
-                <div class="relative mb-2">
-                    <input
-                        type="text"
-                        id="eclass-id-search"
-                        placeholder="Search ECLASS IDs..."
-                        class="w-full text-sm border border-gray-300 rounded-md pl-8 pr-3 py-1.5 focus:border-primary focus:ring-primary"
-                        oninput="filterEclassIds(this.value)"
-                    >
-                    <svg class="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
-                <!-- Selected ECLASS IDs (shown as chips) -->
-                <div id="selected-eclass-ids" class="flex flex-wrap gap-1 mb-2">
-                    {% for eid in (eclass_ids or []) %}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
-                        {{ eid }}
-                        <button type="button" onclick="removeEclassId('{{ eid }}')" class="hover:text-gray-200">
-                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                        <input type="hidden" name="eclass_id" value="{{ eid }}">
-                    </span>
-                    {% endfor %}
-                </div>
-                <!-- ECLASS ID list (top 20 + filtered) -->
-                <div id="eclass-id-list" class="space-y-1 max-h-48 overflow-y-auto">
-                    {% for facet in facets.eclass_ids[:20] %}
-                    <label class="eclass-id-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-value="{{ facet.value }}">
+                </summary>
+                <div class="mt-2 ml-6">
+                    <!-- Search box for ECLASS IDs -->
+                    <div class="relative mb-2">
                         <input
-                            type="checkbox"
-                            name="eclass_id"
-                            value="{{ facet.value }}"
-                            {% if facet.value in (eclass_ids or []) %}checked{% endif %}
-                            onchange="handleEclassIdChange(this)"
-                            class="rounded text-primary focus:ring-primary"
+                            type="text"
+                            id="eclass-id-search"
+                            placeholder="Search ECLASS IDs..."
+                            class="w-full text-sm border border-gray-300 rounded-md pl-8 pr-3 py-1.5 focus:border-primary focus:ring-primary"
+                            oninput="filterEclassIds(this.value)"
                         >
-                        <span class="flex-1 truncate" title="{{ facet.name or facet.value }}">{{ facet.value }}</span>
-                        <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
-                    </label>
-                    {% endfor %}
+                        <svg class="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </div>
+                    <!-- Selected ECLASS IDs (shown as chips) -->
+                    <div id="selected-eclass-ids" class="flex flex-wrap gap-1 mb-2">
+                        {% for eid in (eclass_ids or []) %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
+                            {{ eid }}
+                            <button type="button" onclick="removeEclassId('{{ eid }}')" class="hover:text-gray-200">
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <input type="hidden" name="eclass_id" value="{{ eid }}">
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <!-- ECLASS ID list (top 20 + filtered) -->
+                    <div id="eclass-id-list" class="space-y-1 max-h-48 overflow-y-auto">
+                        {% for facet in facets.eclass_ids[:20] %}
+                        <label class="eclass-id-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-value="{{ facet.value }}">
+                            <input
+                                type="checkbox"
+                                name="eclass_id"
+                                value="{{ facet.value }}"
+                                {% if facet.value in (eclass_ids or []) %}checked{% endif %}
+                                onchange="handleEclassIdChange(this)"
+                                class="rounded text-primary focus:ring-primary"
+                            >
+                            <span class="flex-1 truncate" title="{{ facet.name or facet.value }}">{{ facet.value }}</span>
+                            <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    {% if facets.eclass_ids | length > 20 %}
+                    <p class="text-xs text-gray-500 mt-2">+ {{ (facets.eclass_ids | length) - 20 }} more. Use search to find others.</p>
+                    {% endif %}
+                    <!-- Hidden container for all ECLASS IDs (for search) -->
+                    <div id="all-eclass-ids" class="hidden">
+                        {% for facet in facets.eclass_ids %}
+                        <div data-value="{{ facet.value }}" data-name="{{ (facet.name or facet.value) | lower }}" data-count="{{ facet.count }}"></div>
+                        {% endfor %}
+                    </div>
                 </div>
-                {% if facets.eclass_ids | length > 20 %}
-                <p class="text-xs text-gray-500 mt-2">+ {{ (facets.eclass_ids | length) - 20 }} more. Use search to find others.</p>
-                {% endif %}
-                <!-- Hidden container for all ECLASS IDs (for search) -->
-                <div id="all-eclass-ids" class="hidden">
-                    {% for facet in facets.eclass_ids %}
-                    <div data-value="{{ facet.value }}" data-name="{{ (facet.name or facet.value) | lower }}" data-count="{{ facet.count }}"></div>
-                    {% endfor %}
-                </div>
-            </div>
+            </details>
         </div>
     </aside>
 
