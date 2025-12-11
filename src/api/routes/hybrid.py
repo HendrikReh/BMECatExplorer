@@ -266,11 +266,7 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
                     status_code=400,
                     detail=(
                         "Vector search requires embedding. "
-                        f"Server embedding failed: {e}"
-                    ),
-                ) from e
-                        "Vector search requires embedding. Server embedding failed; "
-                        "please try again later."
+                        f"Server embedding failed: {exc}"
                     ),
                 ) from exc
             # Fall back to BM25 only for hybrid
