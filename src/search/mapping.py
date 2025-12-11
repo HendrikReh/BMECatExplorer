@@ -38,12 +38,10 @@ INDEX_SETTINGS = {
             "supplier_aid": {"type": "keyword"},
             "ean": {"type": "keyword"},
             "manufacturer_aid": {"type": "keyword"},
-
             # Catalog/provenance (for multi-catalog support)
             "catalog_id": {"type": "keyword"},
             "source_uri": {"type": "keyword"},
             "source_file": {"type": "keyword"},
-
             # Text fields with German analyzer
             "manufacturer_name": {
                 "type": "text",
@@ -62,28 +60,23 @@ INDEX_SETTINGS = {
                 },
             },
             "description_long": {"type": "text", "analyzer": "german"},
-
             # Numeric fields
             "delivery_time": {"type": "integer"},
             "order_unit": {"type": "keyword"},
             "price_quantity": {"type": "integer"},
             "quantity_min": {"type": "integer"},
-
             # Classification
             "eclass_id": {"type": "keyword"},
             "eclass_system": {"type": "keyword"},
-
             # Pricing
             "price_amount": {"type": "float"},
             "price_currency": {"type": "keyword"},
             "price_type": {"type": "keyword"},
-
             # Media
             "image": {"type": "keyword"},
-
             # Embedding for vector search (using Faiss engine)
             # Faiss supports dimensions >1024; Lucene is limited to 1024.
-            # Using innerproduct with pre-normalized OpenAI embeddings = cosine similarity.
+            # Using innerproduct with normalized OpenAI embeddings ~= cosine similarity.
             "embedding": {
                 "type": "knn_vector",
                 "dimension": settings.openai_embedding_dimensions,

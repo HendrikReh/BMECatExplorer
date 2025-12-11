@@ -3,6 +3,7 @@
 
 import json
 import sys
+
 from lxml import etree
 
 BMECAT_NS = "http://www.bmecat.org/bmecat/1.2/bmecat_new_catalog"
@@ -14,24 +15,50 @@ HEADER_TAG = f"{{{BMECAT_NS}}}HEADER"
 
 # XPath expressions for articles (compiled once)
 XPATH_SUPPLIER_AID = etree.XPath("bc:SUPPLIER_AID/text()", namespaces=NS)
-XPATH_SHORT_DESC = etree.XPath("bc:ARTICLE_DETAILS/bc:DESCRIPTION_SHORT/text()", namespaces=NS)
-XPATH_LONG_DESC = etree.XPath("bc:ARTICLE_DETAILS/bc:DESCRIPTION_LONG/text()", namespaces=NS)
+XPATH_SHORT_DESC = etree.XPath(
+    "bc:ARTICLE_DETAILS/bc:DESCRIPTION_SHORT/text()", namespaces=NS
+)
+XPATH_LONG_DESC = etree.XPath(
+    "bc:ARTICLE_DETAILS/bc:DESCRIPTION_LONG/text()", namespaces=NS
+)
 XPATH_EAN = etree.XPath("bc:ARTICLE_DETAILS/bc:EAN/text()", namespaces=NS)
-XPATH_MANUFACTURER_AID = etree.XPath("bc:ARTICLE_DETAILS/bc:MANUFACTURER_AID/text()", namespaces=NS)
-XPATH_MANUFACTURER_NAME = etree.XPath("bc:ARTICLE_DETAILS/bc:MANUFACTURER_NAME/text()", namespaces=NS)
-XPATH_DELIVERY_TIME = etree.XPath("bc:ARTICLE_DETAILS/bc:DELIVERY_TIME/text()", namespaces=NS)
-XPATH_ARTICLE_STATUS = etree.XPath("bc:ARTICLE_DETAILS/bc:ARTICLE_STATUS", namespaces=NS)
+XPATH_MANUFACTURER_AID = etree.XPath(
+    "bc:ARTICLE_DETAILS/bc:MANUFACTURER_AID/text()", namespaces=NS
+)
+XPATH_MANUFACTURER_NAME = etree.XPath(
+    "bc:ARTICLE_DETAILS/bc:MANUFACTURER_NAME/text()", namespaces=NS
+)
+XPATH_DELIVERY_TIME = etree.XPath(
+    "bc:ARTICLE_DETAILS/bc:DELIVERY_TIME/text()", namespaces=NS
+)
+XPATH_ARTICLE_STATUS = etree.XPath(
+    "bc:ARTICLE_DETAILS/bc:ARTICLE_STATUS", namespaces=NS
+)
 XPATH_PRICES = etree.XPath("bc:ARTICLE_PRICE_DETAILS/bc:ARTICLE_PRICE", namespaces=NS)
-XPATH_DAILY_PRICE = etree.XPath("bc:ARTICLE_PRICE_DETAILS/bc:DAILY_PRICE/text()", namespaces=NS)
+XPATH_DAILY_PRICE = etree.XPath(
+    "bc:ARTICLE_PRICE_DETAILS/bc:DAILY_PRICE/text()", namespaces=NS
+)
 XPATH_PRICE_AMOUNT = etree.XPath("bc:PRICE_AMOUNT/text()", namespaces=NS)
 XPATH_PRICE_CURRENCY = etree.XPath("bc:PRICE_CURRENCY/text()", namespaces=NS)
 XPATH_TAX = etree.XPath("bc:TAX/text()", namespaces=NS)
-XPATH_ORDER_UNIT = etree.XPath("bc:ARTICLE_ORDER_DETAILS/bc:ORDER_UNIT/text()", namespaces=NS)
-XPATH_PRICE_QUANTITY = etree.XPath("bc:ARTICLE_ORDER_DETAILS/bc:PRICE_QUANTITY/text()", namespaces=NS)
-XPATH_QUANTITY_MIN = etree.XPath("bc:ARTICLE_ORDER_DETAILS/bc:QUANTITY_MIN/text()", namespaces=NS)
-XPATH_QUANTITY_INTERVAL = etree.XPath("bc:ARTICLE_ORDER_DETAILS/bc:QUANTITY_INTERVAL/text()", namespaces=NS)
-XPATH_ECLASS_ID = etree.XPath("bc:ARTICLE_FEATURES/bc:REFERENCE_FEATURE_GROUP_ID/text()", namespaces=NS)
-XPATH_ECLASS_SYSTEM = etree.XPath("bc:ARTICLE_FEATURES/bc:REFERENCE_FEATURE_SYSTEM_NAME/text()", namespaces=NS)
+XPATH_ORDER_UNIT = etree.XPath(
+    "bc:ARTICLE_ORDER_DETAILS/bc:ORDER_UNIT/text()", namespaces=NS
+)
+XPATH_PRICE_QUANTITY = etree.XPath(
+    "bc:ARTICLE_ORDER_DETAILS/bc:PRICE_QUANTITY/text()", namespaces=NS
+)
+XPATH_QUANTITY_MIN = etree.XPath(
+    "bc:ARTICLE_ORDER_DETAILS/bc:QUANTITY_MIN/text()", namespaces=NS
+)
+XPATH_QUANTITY_INTERVAL = etree.XPath(
+    "bc:ARTICLE_ORDER_DETAILS/bc:QUANTITY_INTERVAL/text()", namespaces=NS
+)
+XPATH_ECLASS_ID = etree.XPath(
+    "bc:ARTICLE_FEATURES/bc:REFERENCE_FEATURE_GROUP_ID/text()", namespaces=NS
+)
+XPATH_ECLASS_SYSTEM = etree.XPath(
+    "bc:ARTICLE_FEATURES/bc:REFERENCE_FEATURE_SYSTEM_NAME/text()", namespaces=NS
+)
 XPATH_MIME_INFO = etree.XPath("bc:MIME_INFO/bc:MIME", namespaces=NS)
 XPATH_MIME_TYPE = etree.XPath("bc:MIME_TYPE/text()", namespaces=NS)
 XPATH_MIME_SOURCE = etree.XPath("bc:MIME_SOURCE/text()", namespaces=NS)
@@ -40,19 +67,30 @@ XPATH_MIME_PURPOSE = etree.XPath("bc:MIME_PURPOSE/text()", namespaces=NS)
 
 # XPath expressions for header
 XPATH_CATALOG_ID = etree.XPath("bc:CATALOG/bc:CATALOG_ID/text()", namespaces=NS)
-XPATH_CATALOG_VERSION = etree.XPath("bc:CATALOG/bc:CATALOG_VERSION/text()", namespaces=NS)
+XPATH_CATALOG_VERSION = etree.XPath(
+    "bc:CATALOG/bc:CATALOG_VERSION/text()", namespaces=NS
+)
 XPATH_CATALOG_NAME = etree.XPath("bc:CATALOG/bc:CATALOG_NAME/text()", namespaces=NS)
 XPATH_LANGUAGE = etree.XPath("bc:CATALOG/bc:LANGUAGE/text()", namespaces=NS)
 XPATH_TERRITORY = etree.XPath("bc:CATALOG/bc:TERRITORY/text()", namespaces=NS)
 XPATH_CURRENCY = etree.XPath("bc:CATALOG/bc:CURRENCY/text()", namespaces=NS)
-XPATH_GEN_DATE = etree.XPath("bc:CATALOG/bc:DATETIME[@type='generation_date']/bc:DATE/text()", namespaces=NS)
-XPATH_GEN_TIME = etree.XPath("bc:CATALOG/bc:DATETIME[@type='generation_date']/bc:TIME/text()", namespaces=NS)
+XPATH_GEN_DATE = etree.XPath(
+    "bc:CATALOG/bc:DATETIME[@type='generation_date']/bc:DATE/text()", namespaces=NS
+)
+XPATH_GEN_TIME = etree.XPath(
+    "bc:CATALOG/bc:DATETIME[@type='generation_date']/bc:TIME/text()", namespaces=NS
+)
 XPATH_SUPPLIER_ID = etree.XPath("bc:SUPPLIER/bc:SUPPLIER_ID/text()", namespaces=NS)
 XPATH_SUPPLIER_NAME = etree.XPath("bc:SUPPLIER/bc:SUPPLIER_NAME/text()", namespaces=NS)
 XPATH_BUYER_NAME = etree.XPath("bc:BUYER/bc:BUYER_NAME/text()", namespaces=NS)
 XPATH_AGREEMENT_ID = etree.XPath("bc:AGREEMENT/bc:AGREEMENT_ID/text()", namespaces=NS)
-XPATH_AGREEMENT_START = etree.XPath("bc:AGREEMENT/bc:DATETIME[@type='agreement_start_date']/bc:DATE/text()", namespaces=NS)
-XPATH_AGREEMENT_END = etree.XPath("bc:AGREEMENT/bc:DATETIME[@type='agreement_end_date']/bc:DATE/text()", namespaces=NS)
+XPATH_AGREEMENT_START = etree.XPath(
+    "bc:AGREEMENT/bc:DATETIME[@type='agreement_start_date']/bc:DATE/text()",
+    namespaces=NS,
+)
+XPATH_AGREEMENT_END = etree.XPath(
+    "bc:AGREEMENT/bc:DATETIME[@type='agreement_end_date']/bc:DATE/text()", namespaces=NS
+)
 
 
 def first_or_none(results: list):
@@ -205,7 +243,9 @@ def extract_article(elem) -> dict:
     return data
 
 
-def bmecat_to_jsonlines(input_xml_path: str, output_jsonl_path: str, header_path: str | None = None) -> int:
+def bmecat_to_jsonlines(
+    input_xml_path: str, output_jsonl_path: str, header_path: str | None = None
+) -> int:
     """
     Convert BMECat XML to JSON Lines format.
 
@@ -245,8 +285,14 @@ def bmecat_to_jsonlines(input_xml_path: str, output_jsonl_path: str, header_path
 
 def main():
     if len(sys.argv) < 3 or len(sys.argv) > 4:
-        print("Usage: python main.py input.xml output.jsonl [header.json]", file=sys.stderr)
-        print("  header.json: optional file to save catalog header metadata", file=sys.stderr)
+        print(
+            "Usage: python main.py input.xml output.jsonl [header.json]",
+            file=sys.stderr,
+        )
+        print(
+            "  header.json: optional file to save catalog header metadata",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     input_path = sys.argv[1]

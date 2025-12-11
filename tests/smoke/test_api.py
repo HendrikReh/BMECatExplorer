@@ -7,11 +7,10 @@ Start the server first:
     uv run uvicorn src.api.app:app --port 9019
 """
 
-import pytest
 import httpx
+import pytest
 
 from src.config import settings
-
 
 API_BASE_URL = f"http://localhost:{settings.api_port}"
 

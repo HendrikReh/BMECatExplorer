@@ -1,10 +1,11 @@
 """Unit tests for JSONL import parsing."""
 
-import pytest
 from decimal import Decimal
 
+import pytest
+
 from src.db.import_jsonl import parse_product
-from src.db.models import Product, ProductPrice, ProductMedia
+from src.db.models import Product, ProductMedia, ProductPrice
 
 
 @pytest.mark.unit
@@ -20,7 +21,10 @@ class TestParseProduct:
         assert product.ean == "8712993543250"
         assert product.manufacturer_aid == "50320009"
         assert product.manufacturer_name == "Walraven GmbH"
-        assert product.description_short == "Trägerklammer 5-9mm Britclips FC8 TB 4-8mm 50320009"
+        assert (
+            product.description_short
+            == "Trägerklammer 5-9mm Britclips FC8 TB 4-8mm 50320009"
+        )
         assert product.delivery_time == 5
         assert product.order_unit == "C62"
         assert product.price_quantity == 100
@@ -89,8 +93,18 @@ class TestParseProduct:
         data = {
             "supplier_aid": "TEST003",
             "prices": [
-                {"price_type": "net_customer", "amount": 100.0, "currency": "EUR", "tax": 0.19},
-                {"price_type": "net_list", "amount": 120.0, "currency": "EUR", "tax": 0.19},
+                {
+                    "price_type": "net_customer",
+                    "amount": 100.0,
+                    "currency": "EUR",
+                    "tax": 0.19,
+                },
+                {
+                    "price_type": "net_list",
+                    "amount": 120.0,
+                    "currency": "EUR",
+                    "tax": 0.19,
+                },
             ],
         }
         _, prices, _ = parse_product(data)

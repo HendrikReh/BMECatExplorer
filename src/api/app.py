@@ -3,8 +3,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from src.api.routes.search import router as search_router
 from src.api.routes.hybrid import router as hybrid_router
+from src.api.routes.search import router as search_router
 
 DESCRIPTION = """
 ## Product Search API

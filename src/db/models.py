@@ -3,11 +3,6 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 
-
-def utc_now() -> datetime:
-    """Return current UTC time (timezone-aware)."""
-    return datetime.now(UTC)
-
 from sqlalchemy import (
     Boolean,
     DateTime,
@@ -19,6 +14,11 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+def utc_now() -> datetime:
+    """Return current UTC time (timezone-aware)."""
+    return datetime.now(UTC)
 
 
 class Base(DeclarativeBase):
@@ -46,7 +46,9 @@ class Product(Base):
     mode: Mapped[str | None] = mapped_column(String(20))
     article_status_text: Mapped[str | None] = mapped_column(String(50))
     article_status_type: Mapped[str | None] = mapped_column(String(20))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now
+    )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )

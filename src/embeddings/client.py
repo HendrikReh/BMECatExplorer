@@ -1,7 +1,7 @@
 """OpenAI embedding client with batching and rate limiting."""
 
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 from openai import OpenAI, RateLimitError
 
@@ -102,7 +102,8 @@ def embed_texts(
 
     Args:
         texts: List of texts to embed.
-        batch_size: Number of texts per API call. Defaults to settings.embedding_batch_size.
+        batch_size: Number of texts per API call. Defaults to
+            settings.embedding_batch_size.
         show_progress: If True, print progress to stderr.
 
     Returns:
@@ -121,7 +122,11 @@ def embed_texts(
 
         if show_progress:
             import sys
-            print(f"Embedded {min(i + batch_size, total):,}/{total:,} texts...", file=sys.stderr)
+
+            print(
+                f"Embedded {min(i + batch_size, total):,}/{total:,} texts...",
+                file=sys.stderr,
+            )
 
     return embeddings
 
@@ -137,7 +142,8 @@ def embed_texts_iter(
 
     Args:
         texts: Iterator of texts to embed.
-        batch_size: Number of texts per API call. Defaults to settings.embedding_batch_size.
+        batch_size: Number of texts per API call. Defaults to
+            settings.embedding_batch_size.
 
     Yields:
         Embedding vectors one at a time, in the same order as input texts.

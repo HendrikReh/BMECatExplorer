@@ -72,6 +72,14 @@ test-integration:
 test-smoke:
     uv run pytest tests/smoke -v -m smoke
 
+# Lint with Ruff
+lint:
+    uv run ruff check .
+
+# Format with Black
+format:
+    uv run black .
+
 # Run all tests
 test:
     uv run pytest -v

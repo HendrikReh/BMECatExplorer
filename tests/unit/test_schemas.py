@@ -4,12 +4,12 @@ import pytest
 from pydantic import ValidationError
 
 from src.api.schemas import (
+    AutocompleteResponse,
+    FacetBucket,
+    Facets,
     ProductResult,
     SearchRequest,
     SearchResponse,
-    Facets,
-    FacetBucket,
-    AutocompleteResponse,
 )
 
 

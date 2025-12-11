@@ -1,6 +1,7 @@
 """Shared test fixtures."""
 
 import json
+
 import pytest
 
 
@@ -13,7 +14,9 @@ def sample_product_json() -> dict:
         "manufacturer_aid": "50320009",
         "manufacturer_name": "Walraven GmbH",
         "description_short": "Trägerklammer 5-9mm Britclips FC8 TB 4-8mm 50320009",
-        "description_long": "Ohne Schweißen oder Bohren befestigt die Federstahl-Trägerklammer",
+        "description_long": (
+            "Ohne Schweißen oder Bohren befestigt die " "Federstahl-Trägerklammer"
+        ),
         "delivery_time": 5,
         "order_unit": "C62",
         "price_quantity": 100,
@@ -25,7 +28,12 @@ def sample_product_json() -> dict:
         "mode": "new",
         "article_status": {"text": "Neu", "type": "new"},
         "prices": [
-            {"price_type": "net_customer", "amount": 360.48, "currency": "EUR", "tax": 0.19}
+            {
+                "price_type": "net_customer",
+                "amount": 360.48,
+                "currency": "EUR",
+                "tax": 0.19,
+            }
         ],
         "media": [
             {
