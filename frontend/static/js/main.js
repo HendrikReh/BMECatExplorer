@@ -761,10 +761,10 @@ function exportSelected(format) {
     const timestamp = getTimestamp();
     const filename = `product-export_${timestamp}.${format}`;
 
-    // Get catalog stats from the page
-    const totalProducts = document.querySelector('.text-gray-600 + .font-semibold.text-gray-900')?.textContent || 'N/A';
-    const manufacturerCount = document.querySelectorAll('.flex.items-center.gap-2')[1]?.querySelector('.font-semibold')?.textContent || 'N/A';
-    const categoryCount = document.querySelectorAll('.flex.items-center.gap-2')[2]?.querySelector('.font-semibold')?.textContent || 'N/A';
+    // Get catalog stats from the page using IDs
+    const totalProducts = document.getElementById('stat-total-products')?.textContent || 'N/A';
+    const manufacturerCount = document.getElementById('stat-manufacturer-count')?.textContent || 'N/A';
+    const categoryCount = document.getElementById('stat-category-count')?.textContent || 'N/A';
 
     const metadata = {
         export_timestamp: new Date().toISOString(),
