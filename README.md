@@ -1,6 +1,6 @@
 # BMECatDemo
 
-Convert BMECat XML product catalogs to JSON Lines, store in PostgreSQL, and search via OpenSearch with a FastAPI REST API. Includes a web-based admin interface for product catalog exploration.
+A complete solution for importing, storing, and searching BMECat XML product catalogs. Features a REST API powered by FastAPI and OpenSearch, plus a modern web interface for browsing and exporting products with faceted search, filtering, and batch export capabilities.
 
 ## Prerequisites
 
