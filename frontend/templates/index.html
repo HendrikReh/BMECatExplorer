@@ -109,14 +109,11 @@
                     value="{{ query or '' }}"
                     class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary focus:border-primary text-sm"
                     hx-get="/search"
-                    hx-trigger="keyup changed delay:400ms, search"
+                    hx-trigger="keyup[key=='Enter'], search"
                     hx-target="#results-container"
                     hx-include="[name='manufacturer'], [name='eclass_id'], [name='price_min'], [name='price_max']"
                     hx-indicator="#search-spinner"
                     autocomplete="off"
-                    hx-get="/autocomplete"
-                    hx-trigger="keyup changed delay:300ms[target.value.length >= 2]"
-                    hx-target="#autocomplete-results"
                 >
                 <!-- Loading spinner -->
                 <div id="search-spinner" class="htmx-indicator absolute inset-y-0 right-0 pr-3 flex items-center">
