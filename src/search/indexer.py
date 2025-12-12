@@ -25,6 +25,9 @@ def product_to_doc(
     """Convert a Product model to an OpenSearch document."""
     effective_catalog_id = catalog_id or product.catalog_id or "default"
     effective_source_file = source_file or product.source_file
+    # Document IDs include the catalog namespace to avoid collisions across
+    # multiple BMECat sources. Upgrading from older indices that used
+    # `supplier_aid` as `_id` requires a full reindex (recreate the index).
     doc_id = f"{effective_catalog_id}:{product.supplier_aid}"
 
     doc = {
@@ -79,12 +82,10 @@ def product_to_doc(
         # Normalized unit price: amount / price_quantity (BMECat prices often apply
         # to a bundle quantity, e.g. 100 units).
         qty = product.price_quantity
-        if primary_price.amount is not None and qty:
-            try:
-                if qty > 0:
-                    doc["price_unit_amount"] = float(primary_price.amount) / qty
-            except Exception:
-                doc["price_unit_amount"] = None
+        if primary_price.amount is not None and qty and qty > 0:
+            doc["price_unit_amount"] = float(primary_price.amount) / qty
+        else:
+            doc["price_unit_amount"] = None
 
     # Media: index full list and keep a first image for UI convenience.
     if product.media:
@@ -266,6 +267,14 @@ def main() -> None:
         print(f"  Source: {args.source_file}", file=sys.stderr)
     if args.embeddings:
         print("  Embeddings: enabled", file=sys.stderr)
+    if args.no_recreate:
+        print(
+            "  Note: --no-recreate appends to the existing index. "
+            "If the existing index was created by an older version that used "
+            "`supplier_aid` as document `_id`, recreate the index to avoid "
+            "duplicate documents.",
+            file=sys.stderr,
+        )
 
     count = index_all(
         recreate_index=not args.no_recreate,
