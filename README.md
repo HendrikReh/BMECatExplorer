@@ -1,6 +1,6 @@
 # BMECat Catalog‑Explorer
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/HendrikReh/BMECatDemo)
+[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/HendrikReh/BMECatDemo)
 [![GitHub issues](https://img.shields.io/github/issues/HendrikReh/BMECatDemo)](https://github.com/HendrikReh/BMECatDemo/issues)
 [![GitHub last commit](https://img.shields.io/github/last-commit/HendrikReh/BMECatDemo)](https://github.com/HendrikReh/BMECatDemo/commits)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
