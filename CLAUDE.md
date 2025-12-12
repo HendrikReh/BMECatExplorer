@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-BMECatDemo is a Python utility for converting BMECat XML product catalogs to JSON Lines format. BMECat is a standardized XML format for electronic product catalogs commonly used in B2B e-commerce.
+BMECatExplorer is a Python utility for converting BMECat XML product catalogs to JSON Lines format. BMECat is a standardized XML format for electronic product catalogs commonly used in B2B e-commerce.
 
 ## Commands
 

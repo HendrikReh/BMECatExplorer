@@ -195,7 +195,7 @@ class TestBuildSearchQuery:
         )
         filters = query["bool"]["filter"]
         assert len(filters) == 1
-        price_filter = filters[0]["range"]["price_amount"]
+        price_filter = filters[0]["range"]["price_unit_amount"]
         assert price_filter["gte"] == 100.0
         assert price_filter["lte"] == 500.0
 
@@ -210,7 +210,7 @@ class TestBuildSearchQuery:
             price_min=50.0,
             price_max=None,
         )
-        price_filter = query["bool"]["filter"][0]["range"]["price_amount"]
+        price_filter = query["bool"]["filter"][0]["range"]["price_unit_amount"]
         assert price_filter == {"gte": 50.0}
 
     def test_price_max_only(self):
@@ -224,7 +224,7 @@ class TestBuildSearchQuery:
             price_min=None,
             price_max=1000.0,
         )
-        price_filter = query["bool"]["filter"][0]["range"]["price_amount"]
+        price_filter = query["bool"]["filter"][0]["range"]["price_unit_amount"]
         assert price_filter == {"lte": 1000.0}
 
     def test_combined_query_and_filters(self):
@@ -287,4 +287,5 @@ class TestBuildSearchQuery:
         assert "should" in query["bool"]["must"][0]["bool"]
         # Should have manufacturer filter
         assert len(query["bool"]["filter"]) == 1
-        assert {"term": {"manufacturer_name.keyword": "Wera Werkzeuge GmbH"}} in query["bool"]["filter"]
+        expected = {"term": {"manufacturer_name.keyword": "Wera Werkzeuge GmbH"}}
+        assert expected in query["bool"]["filter"]

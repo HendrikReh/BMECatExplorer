@@ -52,6 +52,7 @@ INDEX_SETTINGS = {
                 "type": "text",
                 "analyzer": "german",
                 "fields": {
+                    "keyword": {"type": "keyword"},
                     "autocomplete": {
                         "type": "text",
                         "analyzer": "autocomplete",
@@ -71,10 +72,30 @@ INDEX_SETTINGS = {
             "eclass_system": {"type": "keyword"},
             # Pricing
             "price_amount": {"type": "float"},
+            # Normalized unit price (price_amount / price_quantity when available)
+            "price_unit_amount": {"type": "float"},
             "price_currency": {"type": "keyword"},
             "price_type": {"type": "keyword"},
+            "prices": {
+                "type": "nested",
+                "properties": {
+                    "price_type": {"type": "keyword"},
+                    "amount": {"type": "float"},
+                    "currency": {"type": "keyword"},
+                    "tax": {"type": "float"},
+                },
+            },
             # Media
             "image": {"type": "keyword"},
+            "media": {
+                "type": "nested",
+                "properties": {
+                    "source": {"type": "keyword"},
+                    "type": {"type": "keyword"},
+                    "description": {"type": "text", "index": False},
+                    "purpose": {"type": "keyword"},
+                },
+            },
             # Embedding for vector search (using Faiss engine)
             # Faiss supports dimensions >1024; Lucene is limited to 1024.
             # Using innerproduct with normalized OpenAI embeddings ~= cosine similarity.

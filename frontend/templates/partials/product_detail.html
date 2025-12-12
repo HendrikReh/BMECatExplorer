@@ -50,9 +50,36 @@
             </div>
             <div>
                 <dt class="text-sm font-medium text-gray-500">Price</dt>
-                <dd class="mt-1 text-sm text-gray-900 font-semibold">
+                <dd class="mt-1 text-sm text-gray-900">
                     {% if product.price_amount %}
-                    {{ product.price_amount | format_price }} {{ product.price_currency or 'EUR' }}
+                        {% if product.price_unit_amount %}
+                        <div
+                            class="font-semibold"
+                            data-tooltip="Unit price is normalized as price_amount / price_quantity. This value is used for price filters."
+                        >
+                            {{ product.price_unit_amount | format_unit_price }} {{ product.price_currency or 'EUR' }}
+                            <span class="text-xs text-gray-500">per unit</span>
+                        </div>
+                        <div
+                            class="text-xs text-gray-500 mt-1"
+                            data-tooltip="Raw BMECat price_amount applies to price_quantity units (often 100)."
+                        >
+                            {{ product.price_amount | format_price }} {{ product.price_currency or 'EUR' }}
+                            {% if product.price_quantity %}
+                            <span class="text-gray-400">for {{ product.price_quantity }} units</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div
+                            class="font-semibold"
+                            data-tooltip="Raw BMECat price_amount applies to price_quantity units (often 100)."
+                        >
+                            {{ product.price_amount | format_price }} {{ product.price_currency or 'EUR' }}
+                            {% if product.price_quantity %}
+                            <span class="text-xs text-gray-500">for {{ product.price_quantity }} units</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
                     {% else %}
                     <span class="text-gray-400 font-normal">-</span>
                     {% endif %}

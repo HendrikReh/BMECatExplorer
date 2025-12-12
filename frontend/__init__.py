@@ -1,1 +1,1 @@
-"""Web frontend for BMECatDemo product catalog search."""
+"""Web frontend for BMECat Explorer."""

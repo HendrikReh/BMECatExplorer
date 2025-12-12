@@ -52,10 +52,23 @@ class ProductResult(BaseModel):
     price_amount: float | None = Field(
         None, description="Product price", json_schema_extra={"example": 360.48}
     )
+    price_unit_amount: float | None = Field(
+        None,
+        description=(
+            "Normalized unit price (price_amount divided by price_quantity when "
+            "available)"
+        ),
+        json_schema_extra={"example": 3.60},
+    )
     price_currency: str | None = Field(
         None,
         description="Price currency (ISO 4217)",
         json_schema_extra={"example": "EUR"},
+    )
+    price_quantity: int | None = Field(
+        None,
+        description="Quantity that the raw price_amount applies to",
+        json_schema_extra={"example": 100},
     )
     image: str | None = Field(
         None,
@@ -63,13 +76,13 @@ class ProductResult(BaseModel):
         json_schema_extra={"example": "1000864.jpg"},
     )
 
+    # Catalog/provenance (multi-catalog support)
+    catalog_id: str | None = Field(None, description="Catalog namespace identifier")
+    source_uri: str | None = Field(None, description="Provenance URI for citation")
+
 
 class ScoredProductResult(ProductResult):
     """Product result with relevance scores for hybrid search."""
-
-    # Provenance fields
-    catalog_id: str | None = Field(None, description="Catalog namespace identifier")
-    source_uri: str | None = Field(None, description="Provenance URI for citation")
 
     # Relevance scores
     score: float | None = Field(None, description="Combined relevance score")

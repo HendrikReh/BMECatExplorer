@@ -85,8 +85,8 @@ class TestSearchEndpoint:
         assert response.status_code == 200
         data = response.json()
         for result in data["results"]:
-            if result["price_amount"]:
-                assert 100 <= result["price_amount"] <= 500
+            if result.get("price_unit_amount") is not None:
+                assert 100 <= result["price_unit_amount"] <= 500
 
     def test_search_invalid_page(self, client: httpx.Client):
         """Test search endpoint with invalid page number."""

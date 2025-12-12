@@ -48,7 +48,7 @@ app = FastAPI(
         },
     ],
     contact={
-        "name": "BMECatDemo",
+        "name": "BMECat Explorer",
     },
     license_info={
         "name": "MIT",

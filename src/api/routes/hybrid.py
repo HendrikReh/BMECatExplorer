@@ -4,6 +4,7 @@ import logging
 import time
 
 from fastapi import APIRouter, HTTPException
+from fastapi.concurrency import run_in_threadpool
 
 from src.api.schemas import (
     BatchSearchRequest,
@@ -66,7 +67,7 @@ def build_filters(
             price_range["gte"] = price_min
         if price_max is not None:
             price_range["lte"] = price_max
-        filters.append({"range": {"price_amount": price_range}})
+        filters.append({"range": {"price_unit_amount": price_range}})
 
     return filters
 
@@ -159,7 +160,9 @@ def parse_hit_to_result(
         eclass_id=source.get("eclass_id"),
         eclass_name=get_eclass_name(source.get("eclass_id")),
         price_amount=source.get("price_amount"),
+        price_unit_amount=source.get("price_unit_amount"),
         price_currency=source.get("price_currency"),
+        price_quantity=source.get("price_quantity"),
         image=source.get("image"),
         catalog_id=source.get("catalog_id"),
         source_uri=source.get("source_uri"),
@@ -290,7 +293,9 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
         if request.include_facets:
             body["aggs"] = build_facet_aggs()
 
-        response = client.search(index=settings.opensearch_index, body=body)
+        response = await run_in_threadpool(
+            client.search, index=settings.opensearch_index, body=body
+        )
         total = response["hits"]["total"]["value"]
 
         for hit in response["hits"]["hits"]:
@@ -317,7 +322,9 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
         if request.include_facets:
             body["aggs"] = build_facet_aggs()
 
-        response = client.search(index=settings.opensearch_index, body=body)
+        response = await run_in_threadpool(
+            client.search, index=settings.opensearch_index, body=body
+        )
         total = response["hits"]["total"]["value"]
 
         for hit in response["hits"]["hits"]:
@@ -335,23 +342,26 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
 
     else:
         # Hybrid mode: combine BM25 and vector results using Reciprocal Rank Fusion
-        # Fetch 3x results from each method to ensure diverse candidates for fusion
-        fetch_size = request.size * 3
+        # Fetch enough results to cover requested page, with headroom for fusion.
+        fetch_size = request.size * request.page * 3
 
         # Execute BM25 lexical search
         bm25_body = {
             "query": build_bm25_query(request.q, filters),
             "size": fetch_size,
+            "track_total_hits": True,
         }
-        bm25_response = client.search(index=settings.opensearch_index, body=bm25_body)
+        bm25_response = await run_in_threadpool(
+            client.search, index=settings.opensearch_index, body=bm25_body
+        )
 
         # Execute vector semantic search
         vector_body = {
             "size": fetch_size,
             "query": build_knn_query(embedding, k=fetch_size, filters=filters),
         }
-        vector_response = client.search(
-            index=settings.opensearch_index, body=vector_body
+        vector_response = await run_in_threadpool(
+            client.search, index=settings.opensearch_index, body=vector_body
         )
 
         # Build rank maps: doc_id -> (rank, score, hit)
@@ -401,6 +411,7 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
         end_idx = start_idx + request.size
         page_docs = scored_docs[start_idx:end_idx]
 
+        # Total in hybrid mode is approximate: number of fused candidates fetched.
         total = len(scored_docs)
 
         for rrf_score_val, bm25_score, vector_score, hit in page_docs:
@@ -424,8 +435,8 @@ async def hybrid_search(request: HybridSearchRequest) -> HybridSearchResponse:
                 ),
                 "aggs": build_facet_aggs(),
             }
-            facet_response = client.search(
-                index=settings.opensearch_index, body=facet_body
+            facet_response = await run_in_threadpool(
+                client.search, index=settings.opensearch_index, body=facet_body
             )
             facets = parse_facets(facet_response.get("aggregations", {}))
 
@@ -511,7 +522,9 @@ async def list_catalogs() -> CatalogListResponse:
         },
     }
 
-    response = client.search(index=settings.opensearch_index, body=body)
+    response = await run_in_threadpool(
+        client.search, index=settings.opensearch_index, body=body
+    )
     aggs = response.get("aggregations", {})
 
     catalogs = []

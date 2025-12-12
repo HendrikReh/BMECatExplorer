@@ -12,6 +12,7 @@ from sqlalchemy import (
     Numeric,
     String,
     Text,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -29,7 +30,11 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    supplier_aid: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    # Multi-catalog support: supplier_aid is unique per catalog.
+    catalog_id: Mapped[str] = mapped_column(
+        String(100), nullable=False, default="default"
+    )
+    supplier_aid: Mapped[str] = mapped_column(String(50), nullable=False)
     ean: Mapped[str | None] = mapped_column(String(20))
     manufacturer_aid: Mapped[str | None] = mapped_column(String(50))
     manufacturer_name: Mapped[str | None] = mapped_column(String(255))
@@ -46,6 +51,7 @@ class Product(Base):
     mode: Mapped[str | None] = mapped_column(String(20))
     article_status_text: Mapped[str | None] = mapped_column(String(50))
     article_status_type: Mapped[str | None] = mapped_column(String(20))
+    source_file: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now
     )
@@ -61,6 +67,10 @@ class Product(Base):
     )
 
     __table_args__ = (
+        UniqueConstraint(
+            "catalog_id", "supplier_aid", name="uq_products_catalog_supplier_aid"
+        ),
+        Index("ix_products_catalog_id", "catalog_id"),
         Index("ix_products_ean", "ean"),
         Index("ix_products_manufacturer_name", "manufacturer_name"),
         Index("ix_products_eclass_id", "eclass_id"),

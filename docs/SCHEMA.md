@@ -1,8 +1,8 @@
-# BMECatDemo Data Schema Documentation
+# BMECat Explorer Data Schema Documentation
 
 ## Overview
 
-BMECatDemo converts BMECat XML product catalogs to JSON Lines, stores them in PostgreSQL, and indexes to OpenSearch for search. This document describes the data schema for integration with external RAG systems.
+BMECat Explorer converts BMECat XML product catalogs to JSON Lines, stores them in PostgreSQL, and indexes to OpenSearch for search. This document describes the data schema for integration with external RAG systems.
 
 ---
 
@@ -36,7 +36,8 @@ BMECatDemo converts BMECat XML product catalogs to JSON Lines, stores them in Po
 | Column | Type | Nullable | Description |
 |--------|------|----------|-------------|
 | `id` | SERIAL | PK | Auto-increment primary key |
-| `supplier_aid` | VARCHAR(50) | NOT NULL, UNIQUE | Supplier article ID (main identifier) |
+| `catalog_id` | VARCHAR(100) | NOT NULL | Catalog namespace (default: `"default"`) |
+| `supplier_aid` | VARCHAR(50) | NOT NULL | Supplier article ID (unique per catalog) |
 | `ean` | VARCHAR(20) | NULL | European Article Number (barcode) |
 | `manufacturer_aid` | VARCHAR(50) | NULL | Manufacturer's article ID |
 | `manufacturer_name` | VARCHAR(255) | NULL | Manufacturer name |
@@ -53,11 +54,14 @@ BMECatDemo converts BMECat XML product catalogs to JSON Lines, stores them in Po
 | `mode` | VARCHAR(20) | NULL | Product mode ("new", "update", "delete") |
 | `article_status_text` | VARCHAR(50) | NULL | Status description |
 | `article_status_type` | VARCHAR(20) | NULL | Status type code |
+| `source_file` | VARCHAR(255) | NULL | Original BMECat XML filename |
 | `created_at` | TIMESTAMP(TZ) | NOT NULL | Record creation time (UTC) |
 | `updated_at` | TIMESTAMP(TZ) | NOT NULL | Last update time (UTC) |
 
 **Indexes:**
 
+- `uq_products_catalog_supplier_aid` unique on (`catalog_id`, `supplier_aid`)
+- `ix_products_catalog_id` on `catalog_id`
 - `ix_products_ean` on `ean`
 - `ix_products_manufacturer_name` on `manufacturer_name`
 - `ix_products_eclass_id` on `eclass_id`
@@ -106,7 +110,7 @@ BMECatDemo converts BMECat XML product catalogs to JSON Lines, stores them in Po
 | `ean` | keyword | — | — | Exact match only |
 | `manufacturer_aid` | keyword | — | — | Exact match only |
 | `manufacturer_name` | text | german | `.keyword` (keyword) | Full-text + exact faceting |
-| `description_short` | text | german | `.autocomplete` (edge_ngram) | Full-text + type-ahead |
+| `description_short` | text | german | `.autocomplete` (edge_ngram), `.keyword` (keyword) | Full-text + type-ahead + exact match |
 | `description_long` | text | german | — | Full-text search |
 | `delivery_time` | integer | — | — | Numeric filtering |
 | `order_unit` | keyword | — | — | Exact match |
@@ -114,10 +118,12 @@ BMECatDemo converts BMECat XML product catalogs to JSON Lines, stores them in Po
 | `quantity_min` | integer | — | — | Numeric filtering |
 | `eclass_id` | keyword | — | — | Exact match, faceting |
 | `eclass_system` | keyword | — | — | Exact match |
-| `price_amount` | float | — | — | Numeric range queries |
+| `price_amount` | float | — | — | Primary price for range queries |
 | `price_currency` | keyword | — | — | Exact match |
 | `price_type` | keyword | — | — | Exact match |
+| `prices` | nested | — | — | Full price list (type/amount/currency/tax) |
 | `image` | keyword | — | — | Filename reference |
+| `media` | nested | — | — | Full media list (source/type/description/purpose) |
 | `catalog_id` | keyword | — | — | Catalog namespace identifier |
 | `source_uri` | keyword | — | — | Provenance URI for citation |
 | `source_file` | keyword | — | — | Original source file |
@@ -163,6 +169,8 @@ Each line in `products.jsonl` is a JSON object:
 ```json
 {
   "mode": "new",
+  "catalog_id": "default",
+  "source_file": "BME-cat_eClass_8.xml",
   "supplier_aid": "1000864",
   "ean": "8712993543250",
   "manufacturer_aid": "50320009",
@@ -636,7 +644,7 @@ The `eclass_system` field indicates the ECLASS version used (e.g., `ECLASS-8.0`)
           │                  │                   │
           ▼                  ▼                   ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                     BMECatDemo API                              │
+│                   BMECat Explorer API                           │
 │  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐         │
 │  │ /search      │   │ /search/     │   │ /products/   │         │
 │  │ (BM25+kNN)   │   │ hybrid       │   │ {id}         │         │

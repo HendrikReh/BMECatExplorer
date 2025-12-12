@@ -23,9 +23,13 @@ def product_to_doc(
     embedding_text: str | None = None,
 ) -> dict:
     """Convert a Product model to an OpenSearch document."""
+    effective_catalog_id = catalog_id or product.catalog_id or "default"
+    effective_source_file = source_file or product.source_file
+    doc_id = f"{effective_catalog_id}:{product.supplier_aid}"
+
     doc = {
         "_index": settings.opensearch_index,
-        "_id": product.supplier_aid,
+        "_id": doc_id,
         "supplier_aid": product.supplier_aid,
         "ean": product.ean,
         "manufacturer_aid": product.manufacturer_aid,
@@ -39,25 +43,63 @@ def product_to_doc(
         "eclass_id": product.eclass_id,
         "eclass_name": get_eclass_name(product.eclass_id),
         "eclass_system": product.eclass_system,
+        "catalog_id": effective_catalog_id,
     }
 
     # Catalog/provenance fields
-    if catalog_id:
-        doc["catalog_id"] = catalog_id
-    if source_file:
-        doc["source_file"] = source_file
-        doc["source_uri"] = f"bmecat://{catalog_id or 'default'}/{product.supplier_aid}"
+    if effective_source_file:
+        doc["source_file"] = effective_source_file
+    doc["source_uri"] = f"bmecat://{effective_catalog_id}/{product.supplier_aid}"
 
-    # Add first price (primary price for search/filtering)
+    # Prices: index full list and keep a primary scalar for filtering.
     if product.prices:
-        price = product.prices[0]
-        doc["price_amount"] = float(price.amount) if price.amount else None
-        doc["price_currency"] = price.currency
-        doc["price_type"] = price.price_type
+        prices_payload: list[dict] = []
+        for p in product.prices:
+            prices_payload.append(
+                {
+                    "price_type": p.price_type,
+                    "amount": float(p.amount) if p.amount is not None else None,
+                    "currency": p.currency,
+                    "tax": float(p.tax) if p.tax is not None else None,
+                }
+            )
+        doc["prices"] = prices_payload
 
-    # Add first image
+        primary_price = next(
+            (p for p in product.prices if p.amount is not None), product.prices[0]
+        )
+        doc["price_amount"] = (
+            float(primary_price.amount)
+            if primary_price.amount is not None
+            else None
+        )
+        doc["price_currency"] = primary_price.currency
+        doc["price_type"] = primary_price.price_type
+
+        # Normalized unit price: amount / price_quantity (BMECat prices often apply
+        # to a bundle quantity, e.g. 100 units).
+        qty = product.price_quantity
+        if primary_price.amount is not None and qty:
+            try:
+                if qty > 0:
+                    doc["price_unit_amount"] = float(primary_price.amount) / qty
+            except Exception:
+                doc["price_unit_amount"] = None
+
+    # Media: index full list and keep a first image for UI convenience.
     if product.media:
-        doc["image"] = product.media[0].source
+        media_payload: list[dict] = []
+        for m in product.media:
+            media_payload.append(
+                {
+                    "source": m.source,
+                    "type": m.type,
+                    "description": m.description,
+                    "purpose": m.purpose,
+                }
+            )
+        doc["media"] = media_payload
+        doc["image"] = media_payload[0].get("source")
 
     # Add embedding if provided
     if embedding:
@@ -101,19 +143,20 @@ def index_all(
     count = 0
 
     with Session(sync_engine) as session:
-        offset = 0
+        last_id = 0
         while True:
             stmt = (
                 select(Product)
                 .options(selectinload(Product.prices), selectinload(Product.media))
+                .where(Product.id > last_id)
                 .order_by(Product.id)
-                .offset(offset)
                 .limit(BATCH_SIZE)
             )
             products = session.scalars(stmt).all()
 
             if not products:
                 break
+            last_id = products[-1].id
 
             # Generate embeddings for batch if enabled
             embeddings: list[list[float] | None] = [None] * len(products)
@@ -122,7 +165,7 @@ def index_all(
             if generate_embeddings and embed_batch and prepare_embedding_text:
                 # Prepare texts for embedding
                 texts = []
-                for p in products:
+                for i, p in enumerate(products):
                     text = prepare_embedding_text(
                         description_short=p.description_short,
                         description_long=p.description_long,
@@ -130,7 +173,7 @@ def index_all(
                         eclass_id=p.eclass_id,
                     )
                     texts.append(text)
-                    embedding_texts[products.index(p)] = text
+                    embedding_texts[i] = text
 
                 # Generate embeddings in batch
                 try:
@@ -163,7 +206,6 @@ def index_all(
                 # Print first error for debugging
                 if errors:
                     print(f"  First error: {errors[0]}", file=sys.stderr)
-            offset += BATCH_SIZE
 
             print(f"Indexed {count:,} documents...", file=sys.stderr)
 

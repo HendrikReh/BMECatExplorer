@@ -4,7 +4,7 @@ import httpx
 
 
 class APIClient:
-    """Async HTTP client for the BMECatDemo backend API."""
+    """Async HTTP client for the BMECat Explorer backend API."""
 
     def __init__(self, base_url: str, timeout: float = 30.0):
         """Initialize the API client.
@@ -15,13 +15,17 @@ class APIClient:
         """
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self._client = httpx.AsyncClient(timeout=self.timeout)
 
     async def _get(self, path: str, params: dict | None = None) -> dict:
         """Make a GET request to the API."""
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            response = await client.get(f"{self.base_url}{path}", params=params)
-            response.raise_for_status()
-            return response.json()
+        response = await self._client.get(f"{self.base_url}{path}", params=params)
+        response.raise_for_status()
+        return response.json()
+
+    async def close(self) -> None:
+        """Close the underlying HTTP client."""
+        await self._client.aclose()
 
     async def search(
         self,
@@ -34,6 +38,8 @@ class APIClient:
         price_max: float | None = None,
         price_band: str | None = None,
         exact_match: bool = False,
+        sort_by: str | None = None,
+        sort_order: str | None = None,
         page: int = 1,
         size: int = 25,
     ) -> dict:
@@ -49,6 +55,9 @@ class APIClient:
             price_max: Maximum price filter
             price_band: Filter by price band (0-10, 10-50, etc.)
             exact_match: If True, search for exact matches on EAN, supplier ID, etc.
+            sort_by: Optional sort field (supplier_aid, manufacturer_name,
+                eclass_id, price_unit_amount)
+            sort_order: Sort order (asc or desc)
             page: Page number (1-indexed)
             size: Results per page
 
@@ -81,6 +90,10 @@ class APIClient:
             params.append(("price_band", price_band))
         if exact_match:
             params.append(("exact_match", "true"))
+        if sort_by:
+            params.append(("sort_by", sort_by))
+        if sort_order:
+            params.append(("sort_order", sort_order))
         return await self._get("/api/v1/search", params)
 
     async def autocomplete(self, q: str) -> list[str]:

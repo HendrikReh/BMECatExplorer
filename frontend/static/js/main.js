@@ -1,5 +1,5 @@
 /**
- * BMECatDemo Frontend - Minimal JavaScript helpers
+ * BMECat Explorer Frontend - Minimal JavaScript helpers
  */
 
 // Modal functions
@@ -433,6 +433,23 @@ function changePageSize(size) {
     });
 }
 
+// Set sort field/order and trigger search
+function setSort(sortBy, order) {
+    const sortByInput = document.getElementById('sort-by');
+    const sortOrderInput = document.getElementById('sort-order');
+    if (sortByInput) sortByInput.value = sortBy;
+    if (sortOrderInput) sortOrderInput.value = order;
+
+    selectedProducts.clear();
+    const params = buildSearchParams();
+    params.page = 1;
+    htmx.ajax('GET', '/search', {
+        target: '#results-container',
+        source: document.body,
+        values: params,
+    });
+}
+
 // Build search parameters from all filter inputs
 function buildSearchParams() {
     const params = {};
@@ -489,6 +506,12 @@ function buildSearchParams() {
     // Exact match toggle
     const exactMatch = document.getElementById('exact-match');
     if (exactMatch?.checked) params.exact_match = 'true';
+
+    // Sorting
+    const sortByInput = document.getElementById('sort-by');
+    const sortOrderInput = document.getElementById('sort-order');
+    if (sortByInput?.value) params.sort_by = sortByInput.value;
+    if (sortOrderInput?.value) params.sort_order = sortOrderInput.value;
 
     return params;
 }
@@ -566,6 +589,12 @@ function clearFilters() {
     if (exactMatch) {
         exactMatch.checked = false;
     }
+
+    // Clear sorting
+    const sortByInput = document.getElementById('sort-by');
+    const sortOrderInput = document.getElementById('sort-order');
+    if (sortByInput) sortByInput.value = '';
+    if (sortOrderInput) sortOrderInput.value = '';
 
     // Update clear button visibility
     updateClearButtonVisibility();
@@ -774,7 +803,9 @@ function exportSelected(format) {
     // Get catalog stats from the page using IDs
     const totalProducts = document.getElementById('stat-total-products')?.textContent || 'N/A';
     const manufacturerCount = document.getElementById('stat-manufacturer-count')?.textContent || 'N/A';
-    const categoryCount = document.getElementById('stat-category-count')?.textContent || 'N/A';
+    const categoryEl = document.getElementById('stat-category-count');
+    const categoryCount = categoryEl?.textContent || 'N/A';
+    const eclassIdCount = categoryEl?.dataset.eclassIdCount || 'N/A';
 
     const metadata = {
         export_timestamp: new Date().toISOString(),
@@ -784,7 +815,8 @@ function exportSelected(format) {
         catalog_stats: {
             total_products_in_search: totalProducts,
             manufacturer_count: manufacturerCount,
-            category_count: categoryCount
+            category_segments_count: categoryCount,
+            eclass_id_count: eclassIdCount
         }
     };
 
@@ -811,7 +843,7 @@ function exportAsCsv(products, metadata, filename) {
     const lines = [];
 
     // Add metadata as comments
-    lines.push('# BMECatDemo Product Export');
+    lines.push('# BMECat Explorer - Product Export');
     lines.push(`# Export Timestamp: ${metadata.export_timestamp}`);
     lines.push(`# Selected Products: ${metadata.selected_count}`);
     if (metadata.search_parameters.query) {
@@ -834,7 +866,10 @@ function exportAsCsv(products, metadata, filename) {
     }
     lines.push(`# Catalog Total Products: ${metadata.catalog_stats.total_products_in_search}`);
     lines.push(`# Catalog Manufacturers: ${metadata.catalog_stats.manufacturer_count}`);
-    lines.push(`# Catalog Categories: ${metadata.catalog_stats.category_count}`);
+    lines.push(
+        `# Catalog Categories (segments): ${metadata.catalog_stats.category_segments_count}`
+    );
+    lines.push(`# Catalog ECLASS IDs: ${metadata.catalog_stats.eclass_id_count}`);
     lines.push('');
 
     // CSV headers
@@ -870,3 +905,95 @@ function downloadBlob(blob, filename) {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
+
+// ---------------------------------------------------------------------------
+// Delayed tooltips (data-tooltip)
+// ---------------------------------------------------------------------------
+
+(() => {
+    const DELAY_MS = 1000;
+    let tooltipEl = null;
+    let showTimer = null;
+
+    function ensureTooltip() {
+        if (tooltipEl) return tooltipEl;
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'custom-tooltip';
+        tooltipEl.className = 'custom-tooltip hidden';
+        document.body.appendChild(tooltipEl);
+        return tooltipEl;
+    }
+
+    function positionTooltip(target) {
+        if (!tooltipEl || tooltipEl.classList.contains('hidden')) return;
+
+        const rect = target.getBoundingClientRect();
+        const padding = 8;
+        const top = rect.bottom + padding + window.scrollY;
+        let left = rect.left + rect.width / 2 + window.scrollX;
+
+        tooltipEl.style.top = `${top}px`;
+        tooltipEl.style.left = `${left}px`;
+
+        // Keep within viewport horizontally.
+        const tooltipRect = tooltipEl.getBoundingClientRect();
+        const minLeft = 8;
+        const maxLeft = window.innerWidth - tooltipRect.width - 8;
+        const currentLeft = tooltipRect.left;
+        if (currentLeft < minLeft) {
+            left += minLeft - currentLeft;
+            tooltipEl.style.left = `${left}px`;
+        } else if (currentLeft > maxLeft) {
+            left -= currentLeft - maxLeft;
+            tooltipEl.style.left = `${left}px`;
+        }
+    }
+
+    function showTooltip(target) {
+        const text = target.dataset.tooltip;
+        if (!text) return;
+        const el = ensureTooltip();
+        el.textContent = text;
+        el.classList.remove('hidden');
+        positionTooltip(target);
+    }
+
+    function hideTooltip() {
+        if (showTimer) {
+            clearTimeout(showTimer);
+            showTimer = null;
+        }
+        if (tooltipEl) {
+            tooltipEl.classList.add('hidden');
+        }
+    }
+
+    function bindTooltip(target) {
+        if (target.dataset.tooltipBound) return;
+        target.dataset.tooltipBound = 'true';
+
+        const onEnter = () => {
+            if (showTimer) clearTimeout(showTimer);
+            showTimer = setTimeout(() => showTooltip(target), DELAY_MS);
+        };
+
+        target.addEventListener('mouseenter', onEnter);
+        target.addEventListener('focus', onEnter);
+        target.addEventListener('mouseleave', hideTooltip);
+        target.addEventListener('blur', hideTooltip);
+        target.addEventListener('mousemove', () => positionTooltip(target));
+    }
+
+    function initTooltips(root = document) {
+        root.querySelectorAll('[data-tooltip]').forEach(bindTooltip);
+    }
+
+    document.addEventListener('DOMContentLoaded', () => initTooltips());
+
+    // Re-bind after HTMX swaps partials.
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        if (event.detail?.target) {
+            initTooltips(event.detail.target);
+        }
+    });
+})();

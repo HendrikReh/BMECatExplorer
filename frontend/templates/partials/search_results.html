@@ -1,5 +1,6 @@
 {% set manufacturer_count = (facets.manufacturers | length) if facets else 0 %}
 {% set eclass_count = (facets.eclass_ids | length) if facets else 0 %}
+{% set segment_count = (facets.eclass_segments | length) if facets else 0 %}
 {% set active_filters = (1 if query else 0) + (1 if manufacturers else 0) + (1 if eclass_ids else 0) + (1 if eclass_segments else 0) + (1 if order_units else 0) + (1 if price_band else 0) %}
 
 <!-- Compact stats bar -->
@@ -10,29 +11,50 @@
                 <svg class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                 </svg>
-                <span class="text-gray-600">Products</span>
+                <span
+                    class="text-gray-600"
+                    data-tooltip="Total number of products matching the current query and filters."
+                >Products</span>
                 <span id="stat-total-products" class="font-semibold text-gray-900">{{ total | format_number }}</span>
             </div>
             <div class="flex items-center gap-2">
                 <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                 </svg>
-                <span class="text-gray-600">Manufacturers</span>
+                <span
+                    class="text-gray-600"
+                    data-tooltip="Number of distinct manufacturers in the current result set (based on manufacturer_name)."
+                >Manufacturers</span>
                 <span id="stat-manufacturer-count" class="font-semibold text-gray-900">{{ manufacturer_count | format_number }}</span>
             </div>
             <div class="flex items-center gap-2">
                 <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                 </svg>
-                <span class="text-gray-600">Categories</span>
-                <span id="stat-category-count" class="font-semibold text-gray-900">{{ eclass_count | format_number }}</span>
+                <span
+                    class="text-gray-600"
+                    data-tooltip="Categories count shows how many ECLASS segments (first 2 digits) are present in the current result set. The value in parentheses is the number of unique full ECLASS IDs."
+                >Categories</span>
+                <span
+                    id="stat-category-count"
+                    data-eclass-id-count="{{ eclass_count | format_number }}"
+                    class="font-semibold text-gray-900"
+                >
+                    {{ segment_count | format_number }}
+                </span>
+                <span class="text-xs text-gray-400">
+                    (ECLASS IDs: {{ eclass_count | format_number }})
+                </span>
             </div>
             {% if active_filters > 0 %}
             <div class="flex items-center gap-2">
                 <svg class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
-                <span class="text-gray-600">Active filters</span>
+                <span
+                    class="text-gray-600"
+                    data-tooltip="Count of filter groups currently applied (query, category segment, ECLASS ID, manufacturer, unit, price band)."
+                >Active filters</span>
                 <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-primary text-white">{{ active_filters }}</span>
             </div>
             {% endif %}
@@ -104,20 +126,82 @@
                     >
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product
+                    <div class="flex items-center gap-1">
+                        <span>Product</span>
+                        <div class="flex flex-col leading-none">
+                            <button
+                                type="button"
+                                onclick="setSort('supplier_aid', 'asc')"
+                                class="text-[10px] {% if sort_by == 'supplier_aid' and sort_order == 'asc' %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}"
+                                aria-label="Sort product ascending"
+                            >▲</button>
+                            <button
+                                type="button"
+                                onclick="setSort('supplier_aid', 'desc')"
+                                class="text-[10px] {% if sort_by == 'supplier_aid' and sort_order == 'desc' %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}"
+                                aria-label="Sort product descending"
+                            >▼</button>
+                        </div>
+                    </div>
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Manufacturer
+                    <div class="flex items-center gap-1">
+                        <span>Manufacturer</span>
+                        <div class="flex flex-col leading-none">
+                            <button
+                                type="button"
+                                onclick="setSort('manufacturer_name', 'asc')"
+                                class="text-[10px] {% if sort_by == 'manufacturer_name' and sort_order == 'asc' %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}"
+                                aria-label="Sort manufacturer ascending"
+                            >▲</button>
+                            <button
+                                type="button"
+                                onclick="setSort('manufacturer_name', 'desc')"
+                                class="text-[10px] {% if sort_by == 'manufacturer_name' and sort_order == 'desc' %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}"
+                                aria-label="Sort manufacturer descending"
+                            >▼</button>
+                        </div>
+                    </div>
                 </th>
                 <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ECLASS
+                    <div class="flex items-center gap-1">
+                        <span>ECLASS</span>
+                        <div class="flex flex-col leading-none">
+                            <button
+                                type="button"
+                                onclick="setSort('eclass_id', 'asc')"
+                                class="text-[10px] {% if sort_by == 'eclass_id' and sort_order == 'asc' %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}"
+                                aria-label="Sort ECLASS ascending"
+                            >▲</button>
+                            <button
+                                type="button"
+                                onclick="setSort('eclass_id', 'desc')"
+                                class="text-[10px] {% if sort_by == 'eclass_id' and sort_order == 'desc' %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}"
+                                aria-label="Sort ECLASS descending"
+                            >▼</button>
+                        </div>
+                    </div>
                 </th>
                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Price
+                    <div class="flex items-center justify-end gap-1">
+                        <span>Price</span>
+                        <div class="flex flex-col leading-none">
+                            <button
+                                type="button"
+                                onclick="setSort('price_unit_amount', 'asc')"
+                                class="text-[10px] {% if sort_by == 'price_unit_amount' and sort_order == 'asc' %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}"
+                                aria-label="Sort price ascending"
+                            >▲</button>
+                            <button
+                                type="button"
+                                onclick="setSort('price_unit_amount', 'desc')"
+                                class="text-[10px] {% if sort_by == 'price_unit_amount' and sort_order == 'desc' %}text-primary{% else %}text-gray-400 hover:text-gray-600{% endif %}"
+                                aria-label="Sort price descending"
+                            >▼</button>
+                        </div>
+                    </div>
                 </th>
-                <th scope="col" class="relative px-6 py-3 w-20">
-                    <span class="sr-only">Actions</span>
-                </th>
+                {# Actions column removed; click on product cell still opens modal #}
             </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -127,7 +211,7 @@
                 {% endfor %}
             {% else %}
             <tr>
-                <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                     <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>

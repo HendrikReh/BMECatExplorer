@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Search - BMECatDemo Admin{% endblock %}
+{% block title %}Search - BMECat Explorer{% endblock %}
 
 {# Macro for hx-include with all filter fields #}
-{% set filter_include = "#search-input, [name='manufacturer'], [name='eclass_id'], [name='eclass_segment'], [name='order_unit'], [name='price_band'], [name='exact_match']" %}
+{% set filter_include = "#search-input, [name='manufacturer'], [name='eclass_id'], [name='eclass_segment'], [name='order_unit'], [name='price_band'], [name='exact_match'], [name='sort_by'], [name='sort_order']" %}
 
 {% block content %}
 <div class="flex gap-6">
@@ -28,7 +28,10 @@
                         <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                        <span class="text-sm font-medium text-gray-700">Category</span>
+                        <span
+                            class="text-sm font-medium text-gray-700"
+                            data-tooltip="Categories are ECLASS segments (top-level groups from the first 2 digits of an ECLASS ID). Selecting one filters products by that segment."
+                        >Category</span>
                     </div>
                     <button
                         type="button"
@@ -60,16 +63,97 @@
                     </label>
                     {% endfor %}
                 </div>
-            </details>
+	            </details>
 
-            <!-- Price Bands filter (Priority 2) -->
-            <details class="group">
+	            <!-- ECLASS ID filter (Priority 2) - Multi-select with search -->
+	            <details class="group">
+	                <summary class="flex justify-between items-center cursor-pointer list-none">
+	                    <div class="flex items-center gap-2">
+	                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+	                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+	                        </svg>
+	                        <span
+	                            class="text-sm font-medium text-gray-700"
+	                            data-tooltip="ECLASS IDs are full 8‑digit classification codes. This is more granular than the Category segment filter above. Multiple selections are combined with OR."
+	                        >ECLASS ID</span>
+	                    </div>
+	                    <button
+	                        type="button"
+	                        id="clear-eclass-id-btn"
+	                        onclick="event.preventDefault(); clearEclassIdFilter()"
+	                        class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
+	                    >
+	                        Clear
+	                    </button>
+	                </summary>
+	                <div class="mt-2 ml-6">
+	                    <!-- Search box for ECLASS IDs -->
+	                    <div class="relative mb-2">
+	                        <input
+	                            type="text"
+	                            id="eclass-id-search"
+	                            placeholder="Search ECLASS IDs..."
+	                            class="w-full text-sm border border-gray-300 rounded-md pl-8 pr-3 py-1.5 focus:border-primary focus:ring-primary"
+	                            oninput="filterEclassIds(this.value)"
+	                        >
+	                        <svg class="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+	                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+	                        </svg>
+	                    </div>
+	                    <!-- Selected ECLASS IDs (shown as chips) -->
+	                    <div id="selected-eclass-ids" class="flex flex-wrap gap-1 mb-2">
+	                        {% for eid in (eclass_ids or []) %}
+	                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
+	                            {{ eid }}
+	                            <button type="button" onclick="removeEclassId('{{ eid }}')" class="hover:text-gray-200">
+	                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+	                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+	                                </svg>
+	                            </button>
+	                            <input type="hidden" name="eclass_id" value="{{ eid }}">
+	                        </span>
+	                        {% endfor %}
+	                    </div>
+	                    <!-- ECLASS ID list (top 20 + filtered) -->
+	                    <div id="eclass-id-list" class="space-y-1 max-h-48 overflow-y-auto">
+	                        {% for facet in facets.eclass_ids[:20] %}
+	                        <label class="eclass-id-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-value="{{ facet.value }}">
+	                            <input
+	                                type="checkbox"
+	                                name="eclass_id"
+	                                value="{{ facet.value }}"
+	                                {% if facet.value in (eclass_ids or []) %}checked{% endif %}
+	                                onchange="handleEclassIdChange(this)"
+	                                class="rounded text-primary focus:ring-primary"
+	                            >
+	                            <span class="flex-1 truncate" title="{{ facet.name or facet.value }}">{{ facet.value }}</span>
+	                            <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
+	                        </label>
+	                        {% endfor %}
+	                    </div>
+	                    {% if facets.eclass_ids | length > 20 %}
+	                    <p class="text-xs text-gray-500 mt-2">+ {{ (facets.eclass_ids | length) - 20 }} more. Use search to find others.</p>
+	                    {% endif %}
+	                    <!-- Hidden container for all ECLASS IDs (for search) -->
+	                    <div id="all-eclass-ids" class="hidden">
+	                        {% for facet in facets.eclass_ids %}
+	                        <div data-value="{{ facet.value }}" data-name="{{ (facet.name or facet.value) | lower }}" data-count="{{ facet.count }}"></div>
+	                        {% endfor %}
+	                    </div>
+	                </div>
+	            </details>
+
+	            <!-- Price Bands filter (Priority 3) -->
+	            <details class="group">
                 <summary class="flex justify-between items-center cursor-pointer list-none">
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                        <span class="text-sm font-medium text-gray-700">Price Range</span>
+                        <span
+                            class="text-sm font-medium text-gray-700"
+                            data-tooltip="Price ranges are based on normalized unit price (price_amount / price_quantity). BMECat prices often apply to bundles (e.g., 100 units), so filters operate per unit."
+                        >Price Range</span>
                     </div>
                     <button
                         type="button"
@@ -117,14 +201,17 @@
                 </div>
             </details>
 
-            <!-- Order Unit filter (Priority 3) - Multi-select -->
-            <details class="group">
+	            <!-- Order Unit filter (Priority 4) - Multi-select -->
+	            <details class="group">
                 <summary class="flex justify-between items-center cursor-pointer list-none">
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                        <span class="text-sm font-medium text-gray-700">Unit</span>
+                        <span
+                            class="text-sm font-medium text-gray-700"
+                            data-tooltip="Units come from BMECat ORDER_UNIT (e.g., C62=piece, MTR=meter). Multiple selections are combined with OR."
+                        >Unit</span>
                     </div>
                     <button
                         type="button"
@@ -170,14 +257,17 @@
                 </div>
             </details>
 
-            <!-- Manufacturer filter - Multi-select with search -->
-            <details class="group">
+	            <!-- Manufacturer filter (Priority 5) - Multi-select with search -->
+	            <details class="group">
                 <summary class="flex justify-between items-center cursor-pointer list-none">
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
-                        <span class="text-sm font-medium text-gray-700">Manufacturer</span>
+                        <span
+                            class="text-sm font-medium text-gray-700"
+                            data-tooltip="Manufacturers are exact manufacturer_name values from the catalog. You can select multiple; filters are combined with OR."
+                        >Manufacturer</span>
                     </div>
                     <button
                         type="button"
@@ -245,82 +335,8 @@
                 </div>
             </details>
 
-            <!-- ECLASS ID filter - Multi-select with search -->
-            <details class="group">
-                <summary class="flex justify-between items-center cursor-pointer list-none">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                        <span class="text-sm font-medium text-gray-700">ECLASS ID</span>
-                    </div>
-                    <button
-                        type="button"
-                        id="clear-eclass-id-btn"
-                        onclick="event.preventDefault(); clearEclassIdFilter()"
-                        class="text-xs text-gray-500 hover:text-gray-700 underline hidden"
-                    >
-                        Clear
-                    </button>
-                </summary>
-                <div class="mt-2 ml-6">
-                    <!-- Search box for ECLASS IDs -->
-                    <div class="relative mb-2">
-                        <input
-                            type="text"
-                            id="eclass-id-search"
-                            placeholder="Search ECLASS IDs..."
-                            class="w-full text-sm border border-gray-300 rounded-md pl-8 pr-3 py-1.5 focus:border-primary focus:ring-primary"
-                            oninput="filterEclassIds(this.value)"
-                        >
-                        <svg class="absolute left-2.5 top-2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                    </div>
-                    <!-- Selected ECLASS IDs (shown as chips) -->
-                    <div id="selected-eclass-ids" class="flex flex-wrap gap-1 mb-2">
-                        {% for eid in (eclass_ids or []) %}
-                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary text-white">
-                            {{ eid }}
-                            <button type="button" onclick="removeEclassId('{{ eid }}')" class="hover:text-gray-200">
-                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                            <input type="hidden" name="eclass_id" value="{{ eid }}">
-                        </span>
-                        {% endfor %}
-                    </div>
-                    <!-- ECLASS ID list (top 20 + filtered) -->
-                    <div id="eclass-id-list" class="space-y-1 max-h-48 overflow-y-auto">
-                        {% for facet in facets.eclass_ids[:20] %}
-                        <label class="eclass-id-item flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded" data-value="{{ facet.value }}">
-                            <input
-                                type="checkbox"
-                                name="eclass_id"
-                                value="{{ facet.value }}"
-                                {% if facet.value in (eclass_ids or []) %}checked{% endif %}
-                                onchange="handleEclassIdChange(this)"
-                                class="rounded text-primary focus:ring-primary"
-                            >
-                            <span class="flex-1 truncate" title="{{ facet.name or facet.value }}">{{ facet.value }}</span>
-                            <span class="text-gray-400 text-xs flex-shrink-0">{{ facet.count | format_number }}</span>
-                        </label>
-                        {% endfor %}
-                    </div>
-                    {% if facets.eclass_ids | length > 20 %}
-                    <p class="text-xs text-gray-500 mt-2">+ {{ (facets.eclass_ids | length) - 20 }} more. Use search to find others.</p>
-                    {% endif %}
-                    <!-- Hidden container for all ECLASS IDs (for search) -->
-                    <div id="all-eclass-ids" class="hidden">
-                        {% for facet in facets.eclass_ids %}
-                        <div data-value="{{ facet.value }}" data-name="{{ (facet.name or facet.value) | lower }}" data-count="{{ facet.count }}"></div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </details>
-        </div>
-    </aside>
+	        </div>
+	    </aside>
 
     <!-- Main content -->
     <div class="flex-1 min-w-0">
@@ -347,6 +363,8 @@
                         hx-indicator="#search-spinner"
                         autocomplete="off"
                     >
+                    <input type="hidden" id="sort-by" name="sort_by" value="{{ sort_by or '' }}">
+                    <input type="hidden" id="sort-order" name="sort_order" value="{{ sort_order or '' }}">
                     <!-- Loading spinner -->
                     <div id="search-spinner" class="htmx-indicator absolute inset-y-0 right-0 pr-3 flex items-center">
                         <svg class="animate-spin h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24">

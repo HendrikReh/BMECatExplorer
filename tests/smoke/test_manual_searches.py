@@ -97,8 +97,8 @@ class TestFilteredSearches:
         assert response.status_code == 200
         data = response.json()
         for result in data["results"]:
-            if result["price_amount"] is not None:
-                assert result["price_amount"] <= 100
+            if result.get("price_unit_amount") is not None:
+                assert result["price_unit_amount"] <= 100
 
     def test_filter_by_price_range_mid(self, client: httpx.Client):
         """9. Filter by price range (mid: 100-500)."""
@@ -108,8 +108,8 @@ class TestFilteredSearches:
         assert response.status_code == 200
         data = response.json()
         for result in data["results"]:
-            if result["price_amount"] is not None:
-                assert 100 <= result["price_amount"] <= 500
+            if result.get("price_unit_amount") is not None:
+                assert 100 <= result["price_unit_amount"] <= 500
 
     def test_filter_by_price_range_high(self, client: httpx.Client):
         """10. Filter by price range (high: 500+)."""
@@ -117,8 +117,8 @@ class TestFilteredSearches:
         assert response.status_code == 200
         data = response.json()
         for result in data["results"]:
-            if result["price_amount"] is not None:
-                assert result["price_amount"] >= 500
+            if result.get("price_unit_amount") is not None:
+                assert result["price_unit_amount"] >= 500
 
 
 @pytest.mark.smoke
@@ -146,8 +146,8 @@ class TestCombinedSearches:
         assert response.status_code == 200
         data = response.json()
         for result in data["results"]:
-            if result["price_amount"] is not None:
-                assert 50 <= result["price_amount"] <= 200
+            if result.get("price_unit_amount") is not None:
+                assert 50 <= result["price_unit_amount"] <= 200
 
     def test_text_search_with_eclass_filter(self, client: httpx.Client):
         """13. Text search + ECLASS filter."""
@@ -175,8 +175,8 @@ class TestCombinedSearches:
         for result in data["results"]:
             if result["manufacturer_name"]:
                 assert result["manufacturer_name"] == "Walraven GmbH"
-            if result["price_amount"] is not None:
-                assert 300 <= result["price_amount"] <= 400
+            if result.get("price_unit_amount") is not None:
+                assert 300 <= result["price_unit_amount"] <= 400
 
     def test_all_filters_combined(self, client: httpx.Client):
         """15. All filters combined."""
@@ -197,8 +197,8 @@ class TestCombinedSearches:
                 assert result["manufacturer_name"] == "Walraven GmbH"
             if result["eclass_id"]:
                 assert result["eclass_id"] == "23140307"
-            if result["price_amount"] is not None:
-                assert 100 <= result["price_amount"] <= 500
+            if result.get("price_unit_amount") is not None:
+                assert 100 <= result["price_unit_amount"] <= 500
 
 
 @pytest.mark.smoke

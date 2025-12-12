@@ -1,4 +1,4 @@
-# BMECatDemo Justfile
+# BMECatExplorer Justfile
 
 # Default recipe - show available commands
 default:
@@ -32,9 +32,9 @@ convert INPUT OUTPUT:
 convert-with-header INPUT OUTPUT HEADER:
     uv run python main.py {{ INPUT }} {{ OUTPUT }} {{ HEADER }}
 
-# Import JSONL to PostgreSQL
-import FILE:
-    uv run python -m src.db.import_jsonl {{ FILE }}
+# Import JSONL to PostgreSQL (supports extra args like --catalog-id)
+import FILE *ARGS:
+    uv run python -m src.db.import_jsonl {{ FILE }} {{ ARGS }}
 
 # Index products from PostgreSQL to OpenSearch
 index:
@@ -104,17 +104,17 @@ setup FILE:
 # Quick pipeline: convert XML, import, index
 pipeline INPUT:
     just convert {{ INPUT }} data/products.jsonl
-    just import data/products.jsonl
+    just import data/products.jsonl --replace-catalog
     just index
 
 # Full pipeline with embeddings
 pipeline-embed INPUT:
     just convert {{ INPUT }} data/products.jsonl
-    just import data/products.jsonl
+    just import data/products.jsonl --replace-catalog
     just index-embed
 
 # Pipeline for multi-catalog setup (appends to existing index)
 pipeline-catalog INPUT CATALOG_ID:
     just convert {{ INPUT }} data/products.jsonl
-    just import data/products.jsonl
+    just import data/products.jsonl --catalog-id {{ CATALOG_ID }} --source-file {{ INPUT }} --replace-catalog
     just index-catalog {{ CATALOG_ID }} {{ INPUT }}

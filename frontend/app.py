@@ -1,8 +1,9 @@
-"""Web frontend application for BMECatDemo product catalog search."""
+"""Web frontend application for BMECat Explorer."""
 
 import csv
 import io
 import json
+import tomllib
 from pathlib import Path
 
 import httpx
@@ -17,7 +18,7 @@ from frontend.config import settings
 BASE_DIR = Path(__file__).parent
 
 app = FastAPI(
-    title="BMECatDemo Admin",
+    title="BMECat Explorer",
     description="Web interface for product catalog exploration",
     docs_url=None,
     redoc_url=None,
@@ -30,11 +31,45 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
 # Register custom filters
-templates.env.filters["format_price"] = lambda x: f"{x:,.2f}" if x else "-"
+templates.env.filters["format_price"] = (
+    lambda x: f"{x:,.2f}" if x is not None else "-"
+)
 templates.env.filters["format_number"] = lambda x: f"{x:,}" if x else "0"
+
+
+def format_unit_price(value: float | None) -> str:
+    """Format unit prices with extra precision for small values."""
+    if value is None:
+        return "-"
+    decimals = 4 if abs(value) < 1 else 2
+    return f"{value:,.{decimals}f}"
+
+
+templates.env.filters["format_unit_price"] = format_unit_price
+
+def load_app_version() -> str:
+    """Load application version from pyproject.toml."""
+    pyproject_path = BASE_DIR.parent / "pyproject.toml"
+    try:
+        with pyproject_path.open("rb") as f:
+            data = tomllib.load(f)
+        return str(data.get("project", {}).get("version", "dev"))
+    except FileNotFoundError:
+        return "dev"
+    except Exception:
+        return "dev"
+
+
+templates.env.globals["app_version"] = load_app_version()
 
 # API client instance
 api = APIClient(base_url=settings.api_base_url)
+
+
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    """Close shared HTTP resources on shutdown."""
+    await api.close()
 
 
 def calculate_page_range(
@@ -85,6 +120,8 @@ async def index(request: Request):
             "eclass_id": None,
             "price_min": None,
             "price_max": None,
+            "sort_by": None,
+            "sort_order": None,
         },
     )
 
@@ -101,6 +138,8 @@ async def search(
     price_max: float | None = Query(None),
     price_band: str | None = Query(None),
     exact_match: bool = Query(False),
+    sort_by: str | None = Query(None),
+    sort_order: str | None = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(default=None),
 ):
@@ -129,6 +168,8 @@ async def search(
             price_max=price_max,
             price_band=price_band,
             exact_match=exact_match,
+            sort_by=sort_by,
+            sort_order=sort_order,
             page=page,
             size=size,
         )
@@ -161,6 +202,8 @@ async def search(
             "price_max": price_max,
             "price_band": price_band,
             "exact_match": exact_match,
+            "sort_by": sort_by,
+            "sort_order": sort_order,
         },
     )
 
@@ -223,8 +266,8 @@ async def export_csv(
         try:
             data = await api.search(
                 q=q,
-                manufacturer=manufacturer,
-                eclass_id=eclass_id,
+                manufacturers=[manufacturer] if manufacturer else None,
+                eclass_ids=[eclass_id] if eclass_id else None,
                 price_min=price_min,
                 price_max=price_max,
                 page=page,
@@ -280,8 +323,8 @@ async def export_json(
         try:
             data = await api.search(
                 q=q,
-                manufacturer=manufacturer,
-                eclass_id=eclass_id,
+                manufacturers=[manufacturer] if manufacturer else None,
+                eclass_ids=[eclass_id] if eclass_id else None,
                 price_min=price_min,
                 price_max=price_max,
                 page=page,

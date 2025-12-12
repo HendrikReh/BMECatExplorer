@@ -23,7 +23,14 @@
             >
             <div class="min-w-0">
                 <div class="text-sm font-medium text-gray-900">{{ product.supplier_aid }}</div>
-                <div class="text-sm text-gray-500 truncate max-w-md" title="{{ product.description_short }}">
+                {% set tooltip_desc = product.description_short or '' %}
+                {% if product.description_long %}
+                    {% set tooltip_desc = tooltip_desc ~ '\n' ~ product.description_long %}
+                {% endif %}
+                <div
+                    class="text-sm text-gray-500 truncate max-w-md"
+                    {% if tooltip_desc %}data-tooltip="{{ tooltip_desc }}"{% endif %}
+                >
                     {{ product.description_short or '-' }}
                 </div>
             </div>
@@ -42,18 +49,38 @@
         <span class="text-gray-400">-</span>
         {% endif %}
     </td>
-    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-medium">
+    <td class="px-6 py-4 whitespace-nowrap text-right leading-tight">
         {% if product.price_amount %}
-        {{ product.price_amount | format_price }} {{ product.price_currency or 'EUR' }}
+            {% if product.price_unit_amount %}
+            <div
+                class="text-sm text-gray-900 font-medium"
+                data-tooltip="Unit price is normalized as price_amount / price_quantity. This value is used for price filters."
+            >
+                {{ product.price_unit_amount | format_unit_price }} {{ product.price_currency or 'EUR' }}
+                <span class="text-xs text-gray-500">per unit</span>
+            </div>
+            <div
+                class="text-xs text-gray-500 mt-0.5"
+                data-tooltip="Raw BMECat price_amount applies to price_quantity units (often 100)."
+            >
+                {{ product.price_amount | format_price }} {{ product.price_currency or 'EUR' }}
+                {% if product.price_quantity %}
+                <span class="text-gray-400">for {{ product.price_quantity }} units</span>
+                {% endif %}
+            </div>
+            {% else %}
+            <div
+                class="text-sm text-gray-900 font-medium"
+                data-tooltip="Raw BMECat price_amount applies to price_quantity units (often 100)."
+            >
+                {{ product.price_amount | format_price }} {{ product.price_currency or 'EUR' }}
+                {% if product.price_quantity %}
+                <span class="text-xs text-gray-500">for {{ product.price_quantity }} units</span>
+                {% endif %}
+            </div>
+            {% endif %}
         {% else %}
-        <span class="text-gray-400">-</span>
+        <span class="text-gray-400 text-sm">-</span>
         {% endif %}
-    </td>
-    <td class="px-6 py-4 whitespace-nowrap text-right text-sm cursor-pointer"
-        hx-get="/product/{{ product.supplier_aid }}"
-        hx-target="#product-modal-content"
-        hx-trigger="click"
-        onclick="openModal()">
-        <span class="text-primary hover:text-blue-700">View</span>
     </td>
 </tr>

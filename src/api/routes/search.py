@@ -1,7 +1,9 @@
 """Search API endpoints."""
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query
-from opensearchpy import NotFoundError
+from fastapi.concurrency import run_in_threadpool
 
 from src.api.schemas import (
     AutocompleteResponse,
@@ -14,6 +16,12 @@ from src.api.schemas import (
 from src.config import settings
 from src.eclass.names import get_eclass_name
 from src.search.client import client
+from src.search.constants import (
+    ECLASS_SEGMENTS,
+    ORDER_UNIT_LABELS,
+    PRICE_BANDS,
+    build_price_band_aggs,
+)
 
 router = APIRouter(prefix="/api/v1", tags=["search"])
 
@@ -27,6 +35,7 @@ def build_search_query(
     price_min: float | None,
     price_max: float | None,
     exact_match: bool = False,
+    catalog_ids: list[str] | None = None,
 ) -> dict:
     """Build OpenSearch query from parameters."""
     must = []
@@ -112,7 +121,14 @@ def build_search_query(
             price_range["gte"] = price_min
         if price_max is not None:
             price_range["lte"] = price_max
-        filter_clauses.append({"range": {"price_amount": price_range}})
+        filter_clauses.append({"range": {"price_unit_amount": price_range}})
+
+    # Catalog filter (supports multiple with OR)
+    if catalog_ids:
+        if len(catalog_ids) == 1:
+            filter_clauses.append({"term": {"catalog_id": catalog_ids[0]}})
+        else:
+            filter_clauses.append({"terms": {"catalog_id": catalog_ids}})
 
     # Build final query
     if must or filter_clauses:
@@ -126,66 +142,6 @@ def build_search_query(
         query = {"match_all": {}}
 
     return query
-
-
-# ECLASS segment names (first 2 digits)
-ECLASS_SEGMENTS = {
-    "21": "Fasteners, fixing",
-    "22": "Machine tools",
-    "23": "Industrial automation",
-    "24": "Plastics machinery",
-    "25": "Process engineering",
-    "26": "Energy technology",
-    "27": "Electrical engineering",
-    "28": "Construction",
-    "29": "HVAC",
-    "30": "Packaging",
-    "31": "Vehicles",
-    "32": "Electronics",
-    "33": "Information technology",
-    "34": "Office, furniture",
-    "35": "Food, agriculture",
-    "36": "Medical, laboratory",
-    "37": "Safety, security",
-    "38": "Services",
-    "39": "Mining, raw materials",
-}
-
-# Order unit labels
-ORDER_UNIT_LABELS = {
-    "C62": "Piece",
-    "MTR": "Meter",
-    "PK": "Pack",
-    "SET": "Set",
-    "PR": "Pair",
-    "RO": "Roll",
-    "CT": "Carton",
-    "CL": "Coil",
-    "BG": "Bag",
-    "RD": "Rod",
-}
-
-# Price band definitions
-PRICE_BANDS = [
-    {"key": "0-10", "label": "€0 - €10", "from": 0, "to": 10},
-    {"key": "10-50", "label": "€10 - €50", "from": 10, "to": 50},
-    {"key": "50-200", "label": "€50 - €200", "from": 50, "to": 200},
-    {"key": "200-1000", "label": "€200 - €1,000", "from": 200, "to": 1000},
-    {"key": "1000+", "label": "€1,000+", "from": 1000, "to": None},
-]
-
-
-def build_price_band_aggs() -> dict:
-    """Build price band range aggregation."""
-    ranges = []
-    for band in PRICE_BANDS:
-        r = {"key": band["key"]}
-        if band["from"] is not None:
-            r["from"] = band["from"]
-        if band["to"] is not None:
-            r["to"] = band["to"]
-        ranges.append(r)
-    return {"range": {"field": "price_amount", "ranges": ranges}}
 
 
 @router.get("/search", response_model=SearchResponse, summary="Search products")
@@ -229,9 +185,25 @@ async def search_products(
         description="Filter by price band (0-10, 10-50, 50-200, 200-1000, 1000+)",
         examples=["50-200"],
     ),
+    catalog_id: list[str] | None = Query(
+        None,
+        description="Filter by catalog namespace(s). Multiple allowed.",
+        examples=["default"],
+    ),
     exact_match: bool = Query(
         False,
         description="If true, search for exact matches on EAN, supplier ID, etc.",
+    ),
+    sort_by: str | None = Query(
+        None,
+        description=(
+            "Optional sort field. Supported: supplier_aid, manufacturer_name, "
+            "eclass_id, price_unit_amount."
+        ),
+        examples=["price_unit_amount"],
+    ),
+    sort_order: Literal["asc", "desc"] | None = Query(
+        None, description="Sort order for sort_by (asc or desc)."
     ),
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     size: int = Query(
@@ -264,6 +236,7 @@ async def search_products(
     manufacturers = [m for m in (manufacturer or []) if m] or None
     eclass_ids = [e for e in (eclass_id or []) if e] or None
     order_units = [u for u in (order_unit or []) if u] or None
+    catalog_ids = [c for c in (catalog_id or []) if c] or None
 
     query = build_search_query(
         q,
@@ -274,6 +247,7 @@ async def search_products(
         price_min,
         price_max,
         exact_match,
+        catalog_ids=catalog_ids,
     )
 
     body = {
@@ -295,10 +269,31 @@ async def search_products(
             },
             "order_units": {"terms": {"field": "order_unit", "size": 50}},
             "price_bands": build_price_band_aggs(),
+            "catalogs": {"terms": {"field": "catalog_id", "size": 100}},
         },
     }
 
-    response = client.search(index=settings.opensearch_index, body=body)
+    if sort_by:
+        sort_fields = {
+            "supplier_aid": "supplier_aid",
+            "manufacturer_name": "manufacturer_name.keyword",
+            "eclass_id": "eclass_id",
+            "price_unit_amount": "price_unit_amount",
+        }
+        field = sort_fields.get(sort_by)
+        if field is None:
+            supported = ", ".join(sort_fields)
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid sort_by '{sort_by}'. Supported: {supported}",
+            )
+        order = sort_order or "asc"
+        sort_clause: dict = {field: {"order": order, "missing": "_last"}}
+        body["sort"] = [sort_clause]
+
+    response = await run_in_threadpool(
+        client.search, index=settings.opensearch_index, body=body
+    )
 
     # Parse results
     hits = response["hits"]
@@ -316,8 +311,12 @@ async def search_products(
                 eclass_id=source.get("eclass_id"),
                 eclass_name=get_eclass_name(source.get("eclass_id")),
                 price_amount=source.get("price_amount"),
+                price_unit_amount=source.get("price_unit_amount"),
                 price_currency=source.get("price_currency"),
+                price_quantity=source.get("price_quantity"),
                 image=source.get("image"),
+                catalog_id=source.get("catalog_id"),
+                source_uri=source.get("source_uri"),
             )
         )
 
@@ -365,6 +364,10 @@ async def search_products(
             )
             for b in aggs.get("price_bands", {}).get("buckets", [])
         ],
+        catalogs=[
+            FacetBucket(value=b["key"], count=b["doc_count"])
+            for b in aggs.get("catalogs", {}).get("buckets", [])
+        ],
     )
 
     return SearchResponse(
@@ -408,7 +411,9 @@ async def autocomplete(
         "_source": ["description_short"],
     }
 
-    response = client.search(index=settings.opensearch_index, body=body)
+    response = await run_in_threadpool(
+        client.search, index=settings.opensearch_index, body=body
+    )
 
     # Extract unique suggestions
     suggestions = []
@@ -427,31 +432,77 @@ async def autocomplete(
     response_model=ProductResult,
     summary="Get product by ID",
 )
-async def get_product(supplier_aid: str) -> ProductResult:
-    """
-    Get a single product by supplier article ID.
+async def get_product(
+    supplier_aid: str,
+    catalog_id: str | None = Query(
+        None,
+        description="Optional catalog namespace to disambiguate duplicate IDs",
+    ),
+) -> ProductResult:
+    """Get a single product by supplier article ID.
 
-    Returns the full product details including price and image information.
-    Returns 404 if the product is not found.
+    If multiple catalogs contain the same supplier_aid, pass catalog_id.
+    Without catalog_id, the endpoint prefers the 'default' catalog.
     """
-    try:
-        response = client.get(index=settings.opensearch_index, id=supplier_aid)
-        source = response["_source"]
-        return ProductResult(
-            supplier_aid=source.get("supplier_aid"),
-            ean=source.get("ean"),
-            manufacturer_aid=source.get("manufacturer_aid"),
+
+    async def do_search(body: dict) -> dict:
+        return await run_in_threadpool(
+            client.search, index=settings.opensearch_index, body=body
+        )
+
+    if catalog_id:
+        body = {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {"term": {"supplier_aid": supplier_aid}},
+                        {"term": {"catalog_id": catalog_id}},
+                    ]
+                }
+            },
+            "size": 1,
+        }
+        response = await do_search(body)
+    else:
+        # Prefer default catalog if present.
+        body_default = {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {"term": {"supplier_aid": supplier_aid}},
+                        {"term": {"catalog_id": "default"}},
+                    ]
+                }
+            },
+            "size": 1,
+        }
+        response = await do_search(body_default)
+        if not response["hits"]["hits"]:
+            body_any = {"query": {"term": {"supplier_aid": supplier_aid}}, "size": 1}
+            response = await do_search(body_any)
+
+    hits = response["hits"]["hits"]
+    if not hits:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    source = hits[0]["_source"]
+    return ProductResult(
+        supplier_aid=source.get("supplier_aid"),
+        ean=source.get("ean"),
+        manufacturer_aid=source.get("manufacturer_aid"),
         manufacturer_name=source.get("manufacturer_name"),
         description_short=source.get("description_short"),
         description_long=source.get("description_long"),
         eclass_id=source.get("eclass_id"),
         eclass_name=get_eclass_name(source.get("eclass_id")),
         price_amount=source.get("price_amount"),
+        price_unit_amount=source.get("price_unit_amount"),
         price_currency=source.get("price_currency"),
+        price_quantity=source.get("price_quantity"),
         image=source.get("image"),
+        catalog_id=source.get("catalog_id"),
+        source_uri=source.get("source_uri"),
     )
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail="Product not found") from e
 
 
 @router.get("/facets", response_model=Facets, summary="Get filter options")
@@ -484,10 +535,13 @@ async def get_facets() -> Facets:
             },
             "order_units": {"terms": {"field": "order_unit", "size": 50}},
             "price_bands": build_price_band_aggs(),
+            "catalogs": {"terms": {"field": "catalog_id", "size": 100}},
         },
     }
 
-    response = client.search(index=settings.opensearch_index, body=body)
+    response = await run_in_threadpool(
+        client.search, index=settings.opensearch_index, body=body
+    )
     aggs = response.get("aggregations", {})
 
     return Facets(
@@ -531,5 +585,9 @@ async def get_facets() -> Facets:
                 count=b["doc_count"],
             )
             for b in aggs.get("price_bands", {}).get("buckets", [])
+        ],
+        catalogs=[
+            FacetBucket(value=b["key"], count=b["doc_count"])
+            for b in aggs.get("catalogs", {}).get("buckets", [])
         ],
     )

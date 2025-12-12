@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}BMECatDemo Admin{% endblock %}</title>
+    <title>{% block title %}BMECat Explorer{% endblock %}</title>
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -32,12 +32,13 @@
             <div class="mx-auto max-w-[110rem] px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
                 <div>
                     <h1 class="text-2xl font-bold text-white">
-                        <a href="/" class="hover:text-slate-200">BMECatDemo</a>
+                        <a href="/" class="hover:text-slate-200">BMECat Explorer</a>
                     </h1>
-                    <p class="text-sm text-slate-400">Product Catalog Explorer</p>
+                    <p class="text-sm text-slate-400">Product Catalog Search Interface</p>
                 </div>
-                <div class="text-sm text-slate-400">
-                    Admin Interface
+                <div class="text-sm text-slate-400 text-right leading-tight">
+                    <div>Admin Interface</div>
+                    <div class="text-xs text-slate-500">v{{ app_version }}</div>
                 </div>
             </div>
         </header>
@@ -49,7 +50,7 @@
 
         <!-- Footer -->
         <footer class="mx-auto max-w-[110rem] px-4 py-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500">
-            BMECatDemo &mdash; Product Catalog Search Interface
+            BMECat Explorer &mdash; Product Catalog Search Interface
         </footer>
     </div>
 

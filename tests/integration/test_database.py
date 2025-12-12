@@ -118,12 +118,12 @@ class TestProductModel:
         db_session.commit()
 
     def test_unique_supplier_aid(self, db_session: Session):
-        """Test that supplier_aid must be unique."""
-        product1 = Product(supplier_aid="INT_TEST_UNIQUE")
+        """Test that supplier_aid must be unique within a catalog."""
+        product1 = Product(supplier_aid="INT_TEST_UNIQUE", catalog_id="default")
         db_session.add(product1)
         db_session.commit()
 
-        product2 = Product(supplier_aid="INT_TEST_UNIQUE")
+        product2 = Product(supplier_aid="INT_TEST_UNIQUE", catalog_id="default")
         db_session.add(product2)
 
         with pytest.raises(IntegrityError):
@@ -132,6 +132,21 @@ class TestProductModel:
         db_session.rollback()
         # Cleanup
         db_session.delete(product1)
+        db_session.commit()
+
+    def test_duplicate_supplier_aid_different_catalogs_allowed(
+        self, db_session: Session
+    ):
+        """Same supplier_aid can exist in different catalogs."""
+        product1 = Product(supplier_aid="INT_TEST_MULTI", catalog_id="catalog_a")
+        product2 = Product(supplier_aid="INT_TEST_MULTI", catalog_id="catalog_b")
+
+        db_session.add_all([product1, product2])
+        db_session.commit()
+
+        # Cleanup
+        db_session.delete(product1)
+        db_session.delete(product2)
         db_session.commit()
 
 

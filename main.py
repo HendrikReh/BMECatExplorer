@@ -175,7 +175,8 @@ def extract_article(elem) -> dict:
         data["description_long"] = val
 
     # Article status
-    if status_elem := first_or_none(XPATH_ARTICLE_STATUS(elem)):
+    status_elem = first_or_none(XPATH_ARTICLE_STATUS(elem))
+    if status_elem is not None:
         status = {}
         if status_elem.text:
             status["text"] = status_elem.text
