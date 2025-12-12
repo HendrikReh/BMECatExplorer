@@ -80,6 +80,10 @@ just pipeline-catalog data/catalog_b.xml catalog_b
 
 Search can be scoped with `catalog_id=catalog_a` (repeatable).
 
+**Upgrade note:** OpenSearch document IDs are `catalog_id:supplier_aid`. If you
+have an existing index from an older version that used `supplier_aid` as `_id`,
+recreate and reindex (e.g., `just index`) to avoid duplicates.
+
 ## API
 
 | Endpoint | Description |

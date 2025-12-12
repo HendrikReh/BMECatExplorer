@@ -102,6 +102,9 @@ BMECat Explorer converts BMECat XML product catalogs to JSON Lines, stores them 
 
 **Index name:** `products` (configurable via `OPENSEARCH_INDEX`)
 
+**Document ID (`_id`):** `{catalog_id}:{supplier_aid}` (reindex required if upgrading
+from older indices that used `{supplier_aid}` as `_id`)
+
 ### Field Mappings
 
 | Field | Type | Analyzer | Sub-fields | Description |
@@ -118,7 +121,8 @@ BMECat Explorer converts BMECat XML product catalogs to JSON Lines, stores them 
 | `quantity_min` | integer | — | — | Numeric filtering |
 | `eclass_id` | keyword | — | — | Exact match, faceting |
 | `eclass_system` | keyword | — | — | Exact match |
-| `price_amount` | float | — | — | Primary price for range queries |
+| `price_amount` | float | — | — | Raw BMECat price amount (often for `price_quantity` units) |
+| `price_unit_amount` | float | — | — | Normalized unit price for range queries (`price_amount / price_quantity`) |
 | `price_currency` | keyword | — | — | Exact match |
 | `price_type` | keyword | — | — | Exact match |
 | `prices` | nested | — | — | Full price list (type/amount/currency/tax) |
