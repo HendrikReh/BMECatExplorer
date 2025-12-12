@@ -49,3 +49,5 @@ htmlcov/
 # Project data
 data/
 *.jsonl
+/README_files
+/README.html

@@ -1,8 +1,8 @@
 # BMECat Catalog‑Explorer
 
-[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/HendrikReh/BMECatExplorer)
-[![GitHub issues](https://img.shields.io/github/issues/HendrikReh/BMECatExplorer)](https://github.com/HendrikReh/BMECatExplorer/issues)
-[![GitHub last commit](https://img.shields.io/github/last-commit/HendrikReh/BMECatExplorer)](https://github.com/HendrikReh/BMECatExplorer/commits)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/HendrikReh/BMECatDemo)
+[![GitHub issues](https://img.shields.io/github/issues/HendrikReh/BMECatDemo)](https://github.com/HendrikReh/BMECatDemo/issues)
+[![GitHub last commit](https://img.shields.io/github/last-commit/HendrikReh/BMECatDemo)](https://github.com/HendrikReh/BMECatDemo/commits)
 [![Python](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 [![Ruff](https://img.shields.io/badge/ruff-linting-black?logo=ruff)](https://docs.astral.sh/ruff/)
 [![Black](https://img.shields.io/badge/code%20style-black-000000?logo=python&logoColor=white)](https://black.readthedocs.io/)
